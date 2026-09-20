@@ -1,68 +1,122 @@
 """
-Gradio UI Event Handlers Module
-Main entry point for setting up all event handlers
+Synapse Music V12 - Gradio UI Event Handlers
+
+Main entry point for connecting Synapse Music V12 UI components
+to generation, results, dataset, preprocessing, and LoRA training logic.
 """
+
 import os
-import gradio as gr
 from typing import Optional
+
+import gradio as gr
 from loguru import logger
 
-# Import handler modules
+# Import Synapse UI handler modules
 from . import generation_handlers as gen_h
 from . import results_handlers as res_h
 from . import training_handlers as train_h
-from acestep.gradio_ui.i18n import t
+from synapse.gradio_ui.i18n import t
 
-# HuggingFace Space environment detection for ZeroGPU support
+
+# Hugging Face Space environment detection for ZeroGPU support
 IS_HUGGINGFACE_SPACE = os.environ.get("SPACE_ID") is not None
 
 
 def _get_spaces_gpu_decorator(duration=120):
     """
-    Get the @spaces.GPU decorator if running in HuggingFace Space environment.
-    Returns identity decorator if not in Space environment.
+    Get the @spaces.GPU decorator when running inside a Hugging Face Space.
+
+    Returns an identity decorator when not running inside a Space or when
+    the optional spaces package is unavailable.
     """
     if IS_HUGGINGFACE_SPACE:
         try:
             import spaces
+
             return spaces.GPU(duration=duration)
         except ImportError:
-            logger.warning("spaces package not found, GPU decorator disabled")
+            logger.warning(
+                "spaces package not found, GPU decorator disabled"
+            )
             return lambda func: func
+
     return lambda func: func
 
 
-def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, dataset_section, generation_section, results_section, init_params=None):
-    """Setup event handlers connecting UI components and business logic
-    
-    Args:
-        init_params: Dictionary containing initialization parameters including:
-            - dit_handler_2: Optional second DiT handler for multi-model setup
-            - available_dit_models: List of available DiT model names
-            - config_path: Primary model config path
-            - config_path_2: Secondary model config path (if available)
+def setup_event_handlers(
+    demo,
+    dit_handler,
+    llm_handler,
+    dataset_handler,
+    dataset_section,
+    generation_section,
+    results_section,
+    init_params=None,
+):
     """
-    # Get secondary DiT handler from init_params (for multi-model support)
-    dit_handler_2 = init_params.get('dit_handler_2') if init_params else None
-    config_path_1 = init_params.get('config_path', '') if init_params else ''
-    config_path_2 = init_params.get('config_path_2', '') if init_params else ''
-    
-    # ========== Dataset Handlers ==========
+    Setup Synapse Music V12 event handlers connecting UI components
+    to generation and application logic.
+
+    Args:
+        init_params:
+            Dictionary containing initialization parameters including:
+            - dit_handler_2: Optional second DiT handler for multi-model setup
+            - available_dit_models: List of available Synapse DiT model names
+            - config_path: Primary model configuration path
+            - config_path_2: Secondary model configuration path
+    """
+
+    # Get secondary Synapse DiT handler from init_params for multi-model support.
+    dit_handler_2 = (
+        init_params.get("dit_handler_2")
+        if init_params
+        else None
+    )
+
+    config_path_1 = (
+        init_params.get("config_path", "")
+        if init_params
+        else ""
+    )
+
+    config_path_2 = (
+        init_params.get("config_path_2", "")
+        if init_params
+        else ""
+    )
+
+    # =========================================================================
+    # Dataset Handlers
+    # =========================================================================
+
     dataset_section["import_dataset_btn"].click(
         fn=dataset_handler.import_dataset,
-        inputs=[dataset_section["dataset_type"]],
-        outputs=[dataset_section["data_status"]]
+        inputs=[
+            dataset_section["dataset_type"]
+        ],
+        outputs=[
+            dataset_section["data_status"]
+        ],
     )
-    
-    # ========== Service Initialization ==========
+
+    # =========================================================================
+    # Synapse Service Initialization
+    # =========================================================================
+
     generation_section["refresh_btn"].click(
-        fn=lambda: gen_h.refresh_checkpoints(dit_handler),
-        outputs=[generation_section["checkpoint_dropdown"]]
+        fn=lambda: gen_h.refresh_checkpoints(
+            dit_handler
+        ),
+        outputs=[
+            generation_section["checkpoint_dropdown"]
+        ],
     )
-    
+
     generation_section["config_path"].change(
         fn=gen_h.update_model_type_settings,
-        inputs=[generation_section["config_path"]],
+        inputs=[
+            generation_section["config_path"]
+        ],
         outputs=[
             generation_section["inference_steps"],
             generation_section["guidance_scale"],
@@ -71,11 +125,15 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["cfg_interval_start"],
             generation_section["cfg_interval_end"],
             generation_section["task_type"],
-        ]
+        ],
     )
-    
+
     generation_section["init_btn"].click(
-        fn=lambda *args: gen_h.init_service_wrapper(dit_handler, llm_handler, *args),
+        fn=lambda *args: gen_h.init_service_wrapper(
+            dit_handler,
+            llm_handler,
+            *args,
+        ),
         inputs=[
             generation_section["checkpoint_dropdown"],
             generation_section["config_path"],
@@ -88,10 +146,10 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["offload_dit_to_cpu_checkbox"],
         ],
         outputs=[
-            generation_section["init_status"], 
-            generation_section["generate_btn"], 
+            generation_section["init_status"],
+            generation_section["generate_btn"],
             generation_section["service_config_accordion"],
-            # Model type settings (updated based on actual loaded model)
+            # Model type settings updated from the actual loaded Synapse model.
             generation_section["inference_steps"],
             generation_section["guidance_scale"],
             generation_section["use_adg"],
@@ -99,57 +157,93 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["cfg_interval_start"],
             generation_section["cfg_interval_end"],
             generation_section["task_type"],
-        ]
+        ],
     )
-    
-    # ========== LoRA Handlers ==========
+
+    # =========================================================================
+    # LoRA Handlers
+    # =========================================================================
+
     generation_section["load_lora_btn"].click(
         fn=dit_handler.load_lora,
-        inputs=[generation_section["lora_path"]],
-        outputs=[generation_section["lora_status"]]
+        inputs=[
+            generation_section["lora_path"]
+        ],
+        outputs=[
+            generation_section["lora_status"]
+        ],
     ).then(
-        # Update checkbox to enabled state after loading
+        # Enable LoRA usage after a successful load.
         fn=lambda: gr.update(value=True),
-        outputs=[generation_section["use_lora_checkbox"]]
+        outputs=[
+            generation_section["use_lora_checkbox"]
+        ],
     )
-    
+
     generation_section["unload_lora_btn"].click(
         fn=dit_handler.unload_lora,
-        outputs=[generation_section["lora_status"]]
+        outputs=[
+            generation_section["lora_status"]
+        ],
     ).then(
-        # Update checkbox to disabled state after unloading
+        # Disable LoRA usage after unloading.
         fn=lambda: gr.update(value=False),
-        outputs=[generation_section["use_lora_checkbox"]]
+        outputs=[
+            generation_section["use_lora_checkbox"]
+        ],
     )
-    
+
     generation_section["use_lora_checkbox"].change(
         fn=dit_handler.set_use_lora,
-        inputs=[generation_section["use_lora_checkbox"]],
-        outputs=[generation_section["lora_status"]]
+        inputs=[
+            generation_section["use_lora_checkbox"]
+        ],
+        outputs=[
+            generation_section["lora_status"]
+        ],
     )
-    
-    # ========== UI Visibility Updates ==========
+
+    # =========================================================================
+    # UI Visibility Updates
+    # =========================================================================
+
     generation_section["init_llm_checkbox"].change(
         fn=gen_h.update_negative_prompt_visibility,
-        inputs=[generation_section["init_llm_checkbox"]],
-        outputs=[generation_section["lm_negative_prompt"]]
+        inputs=[
+            generation_section["init_llm_checkbox"]
+        ],
+        outputs=[
+            generation_section["lm_negative_prompt"]
+        ],
     )
-    
+
     generation_section["init_llm_checkbox"].change(
         fn=gen_h.update_audio_cover_strength_visibility,
-        inputs=[generation_section["task_type"], generation_section["init_llm_checkbox"]],
-        outputs=[generation_section["audio_cover_strength"]]
+        inputs=[
+            generation_section["task_type"],
+            generation_section["init_llm_checkbox"],
+        ],
+        outputs=[
+            generation_section["audio_cover_strength"]
+        ],
     )
-    
+
     generation_section["task_type"].change(
         fn=gen_h.update_audio_cover_strength_visibility,
-        inputs=[generation_section["task_type"], generation_section["init_llm_checkbox"]],
-        outputs=[generation_section["audio_cover_strength"]]
+        inputs=[
+            generation_section["task_type"],
+            generation_section["init_llm_checkbox"],
+        ],
+        outputs=[
+            generation_section["audio_cover_strength"]
+        ],
     )
-    
+
     generation_section["batch_size_input"].change(
         fn=gen_h.update_audio_components_visibility,
-        inputs=[generation_section["batch_size_input"]],
+        inputs=[
+            generation_section["batch_size_input"]
+        ],
         outputs=[
             results_section["audio_col_1"],
             results_section["audio_col_2"],
@@ -160,26 +254,46 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             results_section["audio_col_6"],
             results_section["audio_col_7"],
             results_section["audio_col_8"],
-        ]
+        ],
     )
-    
-    # ========== Audio Conversion ==========
+
+    # =========================================================================
+    # Audio Conversion
+    # =========================================================================
+
     generation_section["convert_src_to_codes_btn"].click(
-        fn=lambda src: gen_h.convert_src_audio_to_codes_wrapper(dit_handler, src),
-        inputs=[generation_section["src_audio"]],
-        outputs=[generation_section["text2music_audio_code_string"]]
+        fn=lambda src: gen_h.convert_src_audio_to_codes_wrapper(
+            dit_handler,
+            src,
+        ),
+        inputs=[
+            generation_section["src_audio"]
+        ],
+        outputs=[
+            generation_section["text2music_audio_code_string"]
+        ],
     )
-    
-    # ========== Instruction UI Updates ==========
-    for trigger in [generation_section["task_type"], generation_section["track_name"], generation_section["complete_track_classes"]]:
+
+    # =========================================================================
+    # Instruction UI Updates
+    # =========================================================================
+
+    for trigger in [
+        generation_section["task_type"],
+        generation_section["track_name"],
+        generation_section["complete_track_classes"],
+    ]:
         trigger.change(
-            fn=lambda *args: gen_h.update_instruction_ui(dit_handler, *args),
+            fn=lambda *args: gen_h.update_instruction_ui(
+                dit_handler,
+                *args,
+            ),
             inputs=[
                 generation_section["task_type"],
                 generation_section["track_name"],
                 generation_section["complete_track_classes"],
                 generation_section["text2music_audio_code_string"],
-                generation_section["init_llm_checkbox"]
+                generation_section["init_llm_checkbox"],
             ],
             outputs=[
                 generation_section["instruction_display_gen"],
@@ -188,15 +302,20 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
                 generation_section["audio_cover_strength"],
                 generation_section["repainting_group"],
                 generation_section["text2music_audio_codes_group"],
-            ]
+            ],
         )
-    
-    # ========== Sample/Transcribe Handlers ==========
-    # Load random example from ./examples/text2music directory
+
+    # =========================================================================
+    # Sample / Transcription Handlers
+    # =========================================================================
+
+    # Load a random example from ./examples/text2music.
     generation_section["sample_btn"].click(
-        fn=lambda task: gen_h.load_random_example(task) + (True,),
+        fn=lambda task: gen_h.load_random_example(
+            task
+        ) + (True,),
         inputs=[
-            generation_section["task_type"],
+            generation_section["task_type"]
         ],
         outputs=[
             generation_section["captions"],
@@ -207,21 +326,29 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["key_scale"],
             generation_section["vocal_language"],
             generation_section["time_signature"],
-            results_section["is_format_caption_state"]
-        ]
+            results_section["is_format_caption_state"],
+        ],
     )
-    
+
     generation_section["text2music_audio_code_string"].change(
         fn=gen_h.update_transcribe_button_text,
-        inputs=[generation_section["text2music_audio_code_string"]],
-        outputs=[generation_section["transcribe_btn"]]
+        inputs=[
+            generation_section["text2music_audio_code_string"]
+        ],
+        outputs=[
+            generation_section["transcribe_btn"]
+        ],
     )
-    
+
     generation_section["transcribe_btn"].click(
-        fn=lambda codes, debug: gen_h.transcribe_audio_codes(llm_handler, codes, debug),
+        fn=lambda codes, debug: gen_h.transcribe_audio_codes(
+            llm_handler,
+            codes,
+            debug,
+        ),
         inputs=[
             generation_section["text2music_audio_code_string"],
-            generation_section["constrained_decoding_debug"]
+            generation_section["constrained_decoding_debug"],
         ],
         outputs=[
             results_section["status_output"],
@@ -232,43 +359,97 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["key_scale"],
             generation_section["vocal_language"],
             generation_section["time_signature"],
-            results_section["is_format_caption_state"]
-        ]
+            results_section["is_format_caption_state"],
+        ],
     )
-    
-    # ========== Reset Format Caption Flag ==========
-    for trigger in [generation_section["captions"], generation_section["lyrics"], generation_section["bpm"],
-                    generation_section["key_scale"], generation_section["time_signature"],
-                    generation_section["vocal_language"], generation_section["audio_duration"]]:
+
+    # =========================================================================
+    # Reset Formatted Caption Flag
+    # =========================================================================
+
+    for trigger in [
+        generation_section["captions"],
+        generation_section["lyrics"],
+        generation_section["bpm"],
+        generation_section["key_scale"],
+        generation_section["time_signature"],
+        generation_section["vocal_language"],
+        generation_section["audio_duration"],
+    ]:
         trigger.change(
             fn=gen_h.reset_format_caption_flag,
             inputs=[],
-            outputs=[results_section["is_format_caption_state"]]
+            outputs=[
+                results_section["is_format_caption_state"]
+            ],
         )
-    
-    # ========== Audio Uploads Accordion ==========
-    for trigger in [generation_section["reference_audio"], generation_section["src_audio"]]:
+
+    # =========================================================================
+    # Audio Upload Accordion
+    # =========================================================================
+
+    for trigger in [
+        generation_section["reference_audio"],
+        generation_section["src_audio"],
+    ]:
         trigger.change(
             fn=gen_h.update_audio_uploads_accordion,
-            inputs=[generation_section["reference_audio"], generation_section["src_audio"]],
-            outputs=[generation_section["audio_uploads_accordion"]]
+            inputs=[
+                generation_section["reference_audio"],
+                generation_section["src_audio"],
+            ],
+            outputs=[
+                generation_section["audio_uploads_accordion"]
+            ],
         )
-    
-    # ========== Instrumental Checkbox ==========
+
+    # =========================================================================
+    # Instrumental Checkbox
+    # =========================================================================
+
     generation_section["instrumental_checkbox"].change(
         fn=gen_h.handle_instrumental_checkbox,
-        inputs=[generation_section["instrumental_checkbox"], generation_section["lyrics"]],
-        outputs=[generation_section["lyrics"]]
+        inputs=[
+            generation_section["instrumental_checkbox"],
+            generation_section["lyrics"],
+        ],
+        outputs=[
+            generation_section["lyrics"]
+        ],
     )
-    
-    # ========== Format Button ==========
-    # Note: cfg_scale and negative_prompt are not supported in format mode
+
+    # =========================================================================
+    # Synapse Composer Format Button
+    # =========================================================================
+
+    # cfg_scale and negative_prompt are not supported in format mode.
     @_get_spaces_gpu_decorator(duration=120)
-    def handle_format_sample_wrapper(caption, lyrics, bpm, duration, key_scale, time_sig, temp, top_k, top_p, debug):
+    def handle_format_sample_wrapper(
+        caption,
+        lyrics,
+        bpm,
+        duration,
+        key_scale,
+        time_sig,
+        temp,
+        top_k,
+        top_p,
+        debug,
+    ):
         return gen_h.handle_format_sample(
-            llm_handler, caption, lyrics, bpm, duration, key_scale, time_sig, temp, top_k, top_p, debug
+            llm_handler,
+            caption,
+            lyrics,
+            bpm,
+            duration,
+            key_scale,
+            time_sig,
+            temp,
+            top_k,
+            top_p,
+            debug,
         )
-    
+
     generation_section["format_btn"].click(
         fn=handle_format_sample_wrapper,
         inputs=[
@@ -293,13 +474,18 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["time_signature"],
             results_section["is_format_caption_state"],
             results_section["status_output"],
-        ]
+        ],
     )
-    
-    # ========== Generation Mode Toggle (Simple/Custom/Cover/Repaint) ==========
+
+    # =========================================================================
+    # Generation Mode Toggle
+    # =========================================================================
+
     generation_section["generation_mode"].change(
         fn=gen_h.handle_generation_mode_change,
-        inputs=[generation_section["generation_mode"]],
+        inputs=[
+            generation_section["generation_mode"]
+        ],
         outputs=[
             generation_section["simple_mode_group"],
             generation_section["custom_mode_content"],
@@ -310,25 +496,38 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["simple_sample_created"],
             generation_section["src_audio_group"],
             generation_section["audio_cover_strength"],
-            generation_section["think_checkbox"],  # Disable thinking for cover/repaint modes
-        ]
+            generation_section["think_checkbox"],
+        ],
     )
-    
-    # ========== Process Source Audio Button ==========
-    # Combines Convert to Codes + Transcribe in one step
-    # Note: @spaces.GPU decorator must be on the function passed directly to fn=,
-    # not on a module-level function wrapped in a lambda. Lambdas capturing handler
-    # objects cause pickling errors on ZeroGPU because the model contains unpicklable
-    # local objects (e.g. AceStepDiTModel.__init__ lambdas).
+
+    # =========================================================================
+    # Process Source Audio
+    # =========================================================================
+
+    # Combines Convert to Codes + Transcribe in one operation.
+    #
+    # The @spaces.GPU decorator must be placed on the function passed
+    # directly to fn= rather than on a module-level function wrapped in a
+    # lambda. Lambdas capturing handler objects can cause ZeroGPU pickling
+    # failures because SynapseDiTModel may contain unpicklable local objects.
+
     @_get_spaces_gpu_decorator(duration=120)
-    def process_source_audio_wrapper(src, debug):
-        return gen_h.process_source_audio(dit_handler, llm_handler, src, debug)
-    
+    def process_source_audio_wrapper(
+        src,
+        debug,
+    ):
+        return gen_h.process_source_audio(
+            dit_handler,
+            llm_handler,
+            src,
+            debug,
+        )
+
     generation_section["process_src_btn"].click(
         fn=process_source_audio_wrapper,
         inputs=[
             generation_section["src_audio"],
-            generation_section["constrained_decoding_debug"]
+            generation_section["constrained_decoding_debug"],
         ],
         outputs=[
             generation_section["text2music_audio_code_string"],
@@ -341,18 +540,27 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["vocal_language"],
             generation_section["time_signature"],
             results_section["is_format_caption_state"],
-        ]
+        ],
     )
-    
-    # ========== Simple Mode Instrumental Checkbox ==========
-    # When instrumental is checked, disable vocal language and set to ["unknown"]
+
+    # =========================================================================
+    # Simple Mode Instrumental Checkbox
+    # =========================================================================
+
     generation_section["simple_instrumental_checkbox"].change(
         fn=gen_h.handle_simple_instrumental_change,
-        inputs=[generation_section["simple_instrumental_checkbox"]],
-        outputs=[generation_section["simple_vocal_language"]]
+        inputs=[
+            generation_section["simple_instrumental_checkbox"]
+        ],
+        outputs=[
+            generation_section["simple_vocal_language"]
+        ],
     )
-    
-    # ========== Random Description Button ==========
+
+    # =========================================================================
+    # Random Description
+    # =========================================================================
+
     generation_section["random_desc_btn"].click(
         fn=gen_h.load_random_simple_description,
         inputs=[],
@@ -360,17 +568,35 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["simple_query_input"],
             generation_section["simple_instrumental_checkbox"],
             generation_section["simple_vocal_language"],
-        ]
+        ],
     )
-    
-    # ========== Create Sample Button (Simple Mode) ==========
-    # Note: cfg_scale and negative_prompt are not supported in create_sample mode
+
+    # =========================================================================
+    # Create Sample - Simple Mode
+    # =========================================================================
+
+    # cfg_scale and negative_prompt are not supported in create_sample mode.
     @_get_spaces_gpu_decorator(duration=120)
-    def handle_create_sample_wrapper(query, instrumental, vocal_lang, temp, top_k, top_p, debug):
+    def handle_create_sample_wrapper(
+        query,
+        instrumental,
+        vocal_lang,
+        temp,
+        top_k,
+        top_p,
+        debug,
+    ):
         return gen_h.handle_create_sample(
-            llm_handler, query, instrumental, vocal_lang, temp, top_k, top_p, debug
+            llm_handler,
+            query,
+            instrumental,
+            vocal_lang,
+            temp,
+            top_k,
+            top_p,
+            debug,
         )
-    
+
     generation_section["create_sample_btn"].click(
         fn=handle_create_sample_wrapper,
         inputs=[
@@ -399,13 +625,18 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["think_checkbox"],
             results_section["is_format_caption_state"],
             results_section["status_output"],
-        ]
+        ],
     )
-    
-    # ========== Load/Save Metadata ==========
+
+    # =========================================================================
+    # Load / Save Metadata
+    # =========================================================================
+
     generation_section["load_file"].upload(
         fn=gen_h.load_metadata,
-        inputs=[generation_section["load_file"]],
+        inputs=[
+            generation_section["load_file"]
+        ],
         outputs=[
             generation_section["task_type"],
             generation_section["captions"],
@@ -432,7 +663,7 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["lm_top_k"],
             generation_section["lm_top_p"],
             generation_section["lm_negative_prompt"],
-            generation_section["use_cot_metas"],  # Added: use_cot_metas
+            generation_section["use_cot_metas"],
             generation_section["use_cot_caption"],
             generation_section["use_cot_language"],
             generation_section["audio_cover_strength"],
@@ -442,114 +673,159 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["repainting_end"],
             generation_section["track_name"],
             generation_section["complete_track_classes"],
-            generation_section["instrumental_checkbox"],  # Added: instrumental_checkbox
-            results_section["is_format_caption_state"]
-        ]
+            generation_section["instrumental_checkbox"],
+            results_section["is_format_caption_state"],
+        ],
     )
-    
-    # Save buttons for all 8 audio outputs
-    download_existing_js = """(current_audio, batch_files) => {
-    // Debug: print what the input actually is
-    console.log("👉 [Debug] Current Audio Input:", current_audio);
-    
-    // 1. Safety check
+
+    # =========================================================================
+    # Save Generated Audio
+    # =========================================================================
+
+    download_existing_js = r"""
+(current_audio, batch_files) => {
+    console.log("👉 [Synapse Debug] Current Audio Input:", current_audio);
+
     if (!current_audio) {
         console.warn("⚠️ No audio selected or audio is empty.");
         return;
     }
+
     if (!batch_files || !Array.isArray(batch_files)) {
         console.warn("⚠️ Batch file list is empty/not ready.");
         return;
     }
 
-    // 2. Smartly extract path string
     let pathString = "";
-    
+
     if (typeof current_audio === "string") {
-        // Case A: direct path string received
         pathString = current_audio;
     } else if (typeof current_audio === "object") {
-        // Case B: an object is received, try common properties
-        // Gradio file objects usually have path, url, or name
-        pathString = current_audio.path || current_audio.name || current_audio.url || "";
+        pathString =
+            current_audio.path ||
+            current_audio.name ||
+            current_audio.url ||
+            "";
     }
 
     if (!pathString) {
-        console.error("❌ Error: Could not extract a valid path string from input.", current_audio);
+        console.error(
+            "❌ Could not extract a valid audio path from input.",
+            current_audio
+        );
         return;
     }
 
-    // 3. Extract Key (UUID)
-    // Path could be /tmp/.../uuid.mp3 or url like /file=.../uuid.mp3
-    let filename = pathString.split(/[\\\\/]/).pop(); // get the filename
-    let key = filename.split('.')[0]; // get UUID without extension
+    const filename = pathString.split(/[\\/]/).pop();
+    const key = filename.split(".")[0];
 
-    console.log(`🔑 Key extracted: ${key}`);
+    console.log(`🔑 Synapse output key: ${key}`);
 
-    // 4. Find matching file(s) in the list
-    let targets = batch_files.filter(f => {
-        // Also extract names from batch_files objects
-        // f usually contains name (backend path) and orig_name (download name)
-        const fPath = f.name || f.path || ""; 
-        return fPath.includes(key);
+    const targets = batch_files.filter((file) => {
+        const filePath =
+            file.name ||
+            file.path ||
+            "";
+
+        return filePath.includes(key);
     });
 
     if (targets.length === 0) {
-        console.warn("❌ No matching files found in batch list for key:", key);
-        alert("Batch list does not contain this file yet. Please wait for generation to finish.");
+        console.warn(
+            "❌ No matching generated file found for key:",
+            key
+        );
+
+        alert(
+            "Synapse has not added this file to the completed batch yet. " +
+            "Please wait for generation to finish."
+        );
+
         return;
     }
 
-    // 5. Trigger download(s)
-    console.log(`🎯 Found ${targets.length} files to download.`);
-    targets.forEach((f, index) => {
+    console.log(
+        `🎯 Found ${targets.length} file(s) to download.`
+    );
+
+    targets.forEach((file, index) => {
         setTimeout(() => {
-            const a = document.createElement('a');
-            // Prefer url (frontend-accessible link), otherwise try data
-            a.href = f.url || f.data; 
-            a.download = f.orig_name || "download";
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }, index * 1000); // 300ms interval to avoid browser blocking
+            const anchor = document.createElement("a");
+
+            anchor.href =
+                file.url ||
+                file.data;
+
+            anchor.download =
+                file.orig_name ||
+                "synapse-music";
+
+            anchor.style.display = "none";
+
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
+        }, index * 1000);
     });
 }
 """
+
     for btn_idx in range(1, 9):
-        results_section[f"save_btn_{btn_idx}"].click(
+        results_section[
+            f"save_btn_{btn_idx}"
+        ].click(
             fn=None,
             inputs=[
-                results_section[f"generated_audio_{btn_idx}"],
-                results_section["generated_audio_batch"],
+                results_section[
+                    f"generated_audio_{btn_idx}"
+                ],
+                results_section[
+                    "generated_audio_batch"
+                ],
             ],
-        js=download_existing_js  # Run the above JS
-    )
-    # ========== Send to Cover Handlers ==========
-    def send_to_cover_handler(audio_file, lm_metadata):
-        """Send audio to cover mode and switch to cover"""
+            js=download_existing_js,
+        )
+
+    # =========================================================================
+    # Send to Cover
+    # =========================================================================
+
+    def send_to_cover_handler(
+        audio_file,
+        lm_metadata,
+    ):
+        """
+        Send generated audio into Synapse Cover mode.
+        """
         if audio_file is None:
             return (gr.skip(),) * 11
+
         return (
-            audio_file,      # src_audio
-            gr.skip(),       # bpm
-            gr.skip(),       # captions
-            gr.skip(),       # lyrics
-            gr.skip(),       # audio_duration
-            gr.skip(),       # key_scale
-            gr.skip(),       # vocal_language
-            gr.skip(),       # time_signature
-            gr.skip(),       # is_format_caption_state
-            "cover",         # generation_mode - switch to cover
-            "cover",         # task_type - set to cover
+            audio_file,
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            "cover",
+            "cover",
         )
-    
+
     for btn_idx in range(1, 9):
-        results_section[f"send_to_cover_btn_{btn_idx}"].click(
+        results_section[
+            f"send_to_cover_btn_{btn_idx}"
+        ].click(
             fn=send_to_cover_handler,
             inputs=[
-                results_section[f"generated_audio_{btn_idx}"],
-                results_section["lm_metadata_state"]
+                results_section[
+                    f"generated_audio_{btn_idx}"
+                ],
+                results_section[
+                    "lm_metadata_state"
+                ],
             ],
             outputs=[
                 generation_section["src_audio"],
@@ -563,34 +839,49 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
                 results_section["is_format_caption_state"],
                 generation_section["generation_mode"],
                 generation_section["task_type"],
-            ]
+            ],
         )
-    
-    # ========== Send to Repaint Handlers ==========
-    def send_to_repaint_handler(audio_file, lm_metadata):
-        """Send audio to repaint mode and switch to repaint"""
+
+    # =========================================================================
+    # Send to Repaint
+    # =========================================================================
+
+    def send_to_repaint_handler(
+        audio_file,
+        lm_metadata,
+    ):
+        """
+        Send generated audio into Synapse Repaint mode.
+        """
         if audio_file is None:
             return (gr.skip(),) * 11
+
         return (
-            audio_file,      # src_audio
-            gr.skip(),       # bpm
-            gr.skip(),       # captions
-            gr.skip(),       # lyrics
-            gr.skip(),       # audio_duration
-            gr.skip(),       # key_scale
-            gr.skip(),       # vocal_language
-            gr.skip(),       # time_signature
-            gr.skip(),       # is_format_caption_state
-            "repaint",       # generation_mode - switch to repaint
-            "repaint",       # task_type - set to repaint
+            audio_file,
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            gr.skip(),
+            "repaint",
+            "repaint",
         )
-    
+
     for btn_idx in range(1, 9):
-        results_section[f"send_to_repaint_btn_{btn_idx}"].click(
+        results_section[
+            f"send_to_repaint_btn_{btn_idx}"
+        ].click(
             fn=send_to_repaint_handler,
             inputs=[
-                results_section[f"generated_audio_{btn_idx}"],
-                results_section["lm_metadata_state"]
+                results_section[
+                    f"generated_audio_{btn_idx}"
+                ],
+                results_section[
+                    "lm_metadata_state"
+                ],
             ],
             outputs=[
                 generation_section["src_audio"],
@@ -604,23 +895,40 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
                 results_section["is_format_caption_state"],
                 generation_section["generation_mode"],
                 generation_section["task_type"],
-            ]
+            ],
         )
-    
-    # ========== Score Calculation Handlers ==========
-    # Use default argument to capture btn_idx value at definition time (Python closure fix)
-    # Note: @spaces.GPU decorator applied here (not on module-level function) to avoid
-    # pickling issues on ZeroGPU when handler objects are captured in closures.
+
+    # =========================================================================
+    # Score Calculation
+    # =========================================================================
+
+    # The ZeroGPU decorator is applied inside the factory to avoid pickling
+    # captured Synapse model objects.
+
     def make_score_handler(idx):
         @_get_spaces_gpu_decorator(duration=120)
-        def score_handler(scale, batch_idx, queue):
-            return res_h.calculate_score_handler_with_selection(
-                dit_handler, llm_handler, idx, scale, batch_idx, queue
+        def score_handler(
+            scale,
+            batch_idx,
+            queue,
+        ):
+            return (
+                res_h.calculate_score_handler_with_selection(
+                    dit_handler,
+                    llm_handler,
+                    idx,
+                    scale,
+                    batch_idx,
+                    queue,
+                )
             )
+
         return score_handler
-    
+
     for btn_idx in range(1, 9):
-        results_section[f"score_btn_{btn_idx}"].click(
+        results_section[
+            f"score_btn_{btn_idx}"
+        ].click(
             fn=make_score_handler(btn_idx),
             inputs=[
                 generation_section["score_scale"],
@@ -628,24 +936,43 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
                 results_section["batch_queue"],
             ],
             outputs=[
-                results_section[f"score_display_{btn_idx}"],
-                results_section[f"details_accordion_{btn_idx}"],
-                results_section["batch_queue"]
-            ]
+                results_section[
+                    f"score_display_{btn_idx}"
+                ],
+                results_section[
+                    f"details_accordion_{btn_idx}"
+                ],
+                results_section["batch_queue"],
+            ],
         )
-    
-    # ========== LRC Timestamp Handlers ==========
-    # Use default argument to capture btn_idx value at definition time (Python closure fix)
+
+    # =========================================================================
+    # LRC Timestamp Generation
+    # =========================================================================
+
     def make_lrc_handler(idx):
         @_get_spaces_gpu_decorator(duration=120)
-        def lrc_handler(batch_idx, queue, vocal_lang, infer_steps):
+        def lrc_handler(
+            batch_idx,
+            queue,
+            vocal_lang,
+            infer_steps,
+        ):
             return res_h.generate_lrc_handler(
-                dit_handler, idx, batch_idx, queue, vocal_lang, infer_steps
+                dit_handler,
+                idx,
+                batch_idx,
+                queue,
+                vocal_lang,
+                infer_steps,
             )
+
         return lrc_handler
-    
+
     for btn_idx in range(1, 9):
-        results_section[f"lrc_btn_{btn_idx}"].click(
+        results_section[
+            f"lrc_btn_{btn_idx}"
+        ].click(
             fn=make_lrc_handler(btn_idx),
             inputs=[
                 results_section["current_batch_index"],
@@ -654,52 +981,137 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
                 generation_section["inference_steps"],
             ],
             outputs=[
-                results_section[f"lrc_display_{btn_idx}"],
-                results_section[f"details_accordion_{btn_idx}"],
-                # NOTE: Removed generated_audio output!
-                # Audio subtitles are now updated via lrc_display.change() event.
-                results_section["batch_queue"]
-            ]
+                results_section[
+                    f"lrc_display_{btn_idx}"
+                ],
+                results_section[
+                    f"details_accordion_{btn_idx}"
+                ],
+                results_section["batch_queue"],
+            ],
         )
-    
+
+    # =========================================================================
+    # Main Synapse Generation Wrapper
+    # =========================================================================
+
     @_get_spaces_gpu_decorator(duration=120)
-    def generation_wrapper(selected_model, generation_mode, simple_query_input, simple_vocal_language, *args):
-        """Wrapper that selects the appropriate DiT handler based on model selection"""
-        # Convert args to list for modification
+    def generation_wrapper(
+        selected_model,
+        generation_mode,
+        simple_query_input,
+        simple_vocal_language,
+        *args,
+    ):
+        """
+        Select the appropriate Synapse DiT handler and execute generation.
+
+        Simple mode first uses Synapse Composer to create structured music
+        metadata before passing the resulting configuration to the audio model.
+        """
         args_list = list(args)
-        
-        # args order (after simple mode params):
-        # captions (0), lyrics (1), bpm (2), key_scale (3), time_signature (4), vocal_language (5),
-        # inference_steps (6), guidance_scale (7), random_seed_checkbox (8), seed (9),
-        # reference_audio (10), audio_duration (11), batch_size_input (12), src_audio (13),
-        # text2music_audio_code_string (14), repainting_start (15), repainting_end (16),
-        # instruction_display_gen (17), audio_cover_strength (18), task_type (19), ...
-        # ... lm_temperature (27), think_checkbox (28), ...
-        # ... instrumental_checkbox (at position after all regular params)
-        
-        src_audio = args_list[13] if len(args_list) > 13 else None
-        task_type = args_list[19] if len(args_list) > 19 else "text2music"
-        
-        # Validate: Cover and Repaint modes require source audio
-        if task_type in ["cover", "repaint"] and src_audio is None:
-            raise gr.Error(f"Source Audio is required for {task_type.capitalize()} mode. Please upload an audio file.")
-        
-        # Handle Simple mode: first create sample, then generate
+
+        # args order after Simple mode parameters:
+        #
+        # captions (0)
+        # lyrics (1)
+        # bpm (2)
+        # key_scale (3)
+        # time_signature (4)
+        # vocal_language (5)
+        # inference_steps (6)
+        # guidance_scale (7)
+        # random_seed_checkbox (8)
+        # seed (9)
+        # reference_audio (10)
+        # audio_duration (11)
+        # batch_size_input (12)
+        # src_audio (13)
+        # text2music_audio_code_string (14)
+        # repainting_start (15)
+        # repainting_end (16)
+        # instruction_display_gen (17)
+        # audio_cover_strength (18)
+        # task_type (19)
+        # ...
+        # lm_temperature (27)
+        # think_checkbox (28)
+        # ...
+        # instrumental_checkbox is passed after the regular generation params.
+
+        src_audio = (
+            args_list[13]
+            if len(args_list) > 13
+            else None
+        )
+
+        task_type = (
+            args_list[19]
+            if len(args_list) > 19
+            else "text2music"
+        )
+
+        # Cover and Repaint require source audio.
+        if (
+            task_type in ["cover", "repaint"]
+            and src_audio is None
+        ):
+            raise gr.Error(
+                "Source Audio is required for "
+                f"{task_type.capitalize()} mode. "
+                "Please upload an audio file."
+            )
+
+        # ---------------------------------------------------------------------
+        # Simple Mode - Generate Structured Composition Data
+        # ---------------------------------------------------------------------
+
         if generation_mode == "simple":
-            # Get instrumental from the main checkbox (args[-6] based on input order)
-            # The instrumental_checkbox is passed after all the regular generation params
-            instrumental = args_list[-6] if len(args_list) > 6 else False  # instrumental_checkbox position
-            lm_temperature = args_list[27] if len(args_list) > 27 else 0.85
-            lm_top_k = args_list[30] if len(args_list) > 30 else 0
-            lm_top_p = args_list[31] if len(args_list) > 31 else 0.9
-            constrained_decoding_debug = args_list[38] if len(args_list) > 38 else False
-            
-            # Call create_sample to generate caption/lyrics/metadata
-            from acestep.inference import create_sample
-            
-            top_k_value = None if not lm_top_k or lm_top_k == 0 else int(lm_top_k)
-            top_p_value = None if not lm_top_p or lm_top_p >= 1.0 else lm_top_p
-            
+            instrumental = (
+                args_list[-6]
+                if len(args_list) > 6
+                else False
+            )
+
+            lm_temperature = (
+                args_list[27]
+                if len(args_list) > 27
+                else 0.85
+            )
+
+            lm_top_k = (
+                args_list[30]
+                if len(args_list) > 30
+                else 0
+            )
+
+            lm_top_p = (
+                args_list[31]
+                if len(args_list) > 31
+                else 0.9
+            )
+
+            constrained_decoding_debug = (
+                args_list[38]
+                if len(args_list) > 38
+                else False
+            )
+
+            # Synapse Composer sample generation.
+            from synapse.inference import create_sample
+
+            top_k_value = (
+                None
+                if not lm_top_k or lm_top_k == 0
+                else int(lm_top_k)
+            )
+
+            top_p_value = (
+                None
+                if not lm_top_p or lm_top_p >= 1.0
+                else lm_top_p
+            )
+
             result = create_sample(
                 llm_handler=llm_handler,
                 query=simple_query_input,
@@ -709,40 +1121,66 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
                 top_k=top_k_value,
                 top_p=top_p_value,
                 use_constrained_decoding=True,
-                constrained_decoding_debug=constrained_decoding_debug,
+                constrained_decoding_debug=(
+                    constrained_decoding_debug
+                ),
             )
-            
+
             if not result.success:
-                raise gr.Error(f"Failed to create sample: {result.status_message}")
-            
-            # Update args with generated data
-            args_list[0] = result.caption  # captions
-            args_list[1] = result.lyrics  # lyrics
-            args_list[2] = result.bpm  # bpm
-            args_list[3] = result.keyscale  # key_scale
-            args_list[4] = result.timesignature  # time_signature
-            args_list[5] = result.language  # vocal_language
-            if result.duration and result.duration > 0:
-                args_list[11] = result.duration  # audio_duration
-            # Enable thinking for Simple mode
-            args_list[28] = True  # think_checkbox
-            # Mark as formatted caption (LM-generated sample)
-            args_list[36] = True  # is_format_caption_state
-        
-        # Determine which handler to use based on model selection
-        active_handler = dit_handler  # Default to primary handler
-        if dit_handler_2 is not None and selected_model == config_path_2:
+                raise gr.Error(
+                    "Synapse Composer failed to create "
+                    f"the sample: {result.status_message}"
+                )
+
+            # Apply Synapse Composer output to the generation parameters.
+            args_list[0] = result.caption
+            args_list[1] = result.lyrics
+            args_list[2] = result.bpm
+            args_list[3] = result.keyscale
+            args_list[4] = result.timesignature
+            args_list[5] = result.language
+
+            if (
+                result.duration
+                and result.duration > 0
+            ):
+                args_list[11] = result.duration
+
+            # Enable thinking for Simple mode.
+            args_list[28] = True
+
+            # Mark metadata as Synapse Composer-generated/formatted.
+            args_list[36] = True
+
+        # ---------------------------------------------------------------------
+        # Select Active Synapse Model
+        # ---------------------------------------------------------------------
+
+        active_handler = dit_handler
+
+        if (
+            dit_handler_2 is not None
+            and selected_model == config_path_2
+        ):
             active_handler = dit_handler_2
-        yield from res_h.generate_with_batch_management(active_handler, llm_handler, *args_list)
-    
-    # ========== Generation Handler ==========
+
+        yield from res_h.generate_with_batch_management(
+            active_handler,
+            llm_handler,
+            *args_list,
+        )
+
+    # =========================================================================
+    # Main Generation Handler
+    # =========================================================================
+
     generation_section["generate_btn"].click(
         fn=generation_wrapper,
         inputs=[
-            generation_section["dit_model_selector"],  # Model selection input
-            generation_section["generation_mode"],  # For Simple mode detection
-            generation_section["simple_query_input"],  # Simple mode query
-            generation_section["simple_vocal_language"],  # Simple mode vocal language
+            generation_section["dit_model_selector"],
+            generation_section["generation_mode"],
+            generation_section["simple_query_input"],
+            generation_section["simple_vocal_language"],
             generation_section["captions"],
             generation_section["lyrics"],
             generation_section["bpm"],
@@ -850,14 +1288,24 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             results_section["next_batch_btn"],
             results_section["next_batch_status"],
             results_section["restore_params_btn"],
-        ]
+        ],
     ).then(
-        fn=lambda selected_model, *args: res_h.generate_next_batch_background(
-            dit_handler_2 if (dit_handler_2 is not None and selected_model == config_path_2) else dit_handler,
-            llm_handler, *args
+        fn=lambda selected_model, *args: (
+            res_h.generate_next_batch_background(
+                (
+                    dit_handler_2
+                    if (
+                        dit_handler_2 is not None
+                        and selected_model == config_path_2
+                    )
+                    else dit_handler
+                ),
+                llm_handler,
+                *args,
+            )
         ),
         inputs=[
-            generation_section["dit_model_selector"],  # Model selection input
+            generation_section["dit_model_selector"],
             generation_section["autogen_checkbox"],
             results_section["generation_params_state"],
             results_section["current_batch_index"],
@@ -870,10 +1318,13 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             results_section["total_batches"],
             results_section["next_batch_status"],
             results_section["next_batch_btn"],
-        ]
+        ],
     )
-    
-    # ========== Batch Navigation Handlers ==========
+
+    # =========================================================================
+    # Batch Navigation - Previous
+    # =========================================================================
+
     results_section["prev_batch_btn"].click(
         fn=res_h.navigate_to_previous_batch,
         inputs=[
@@ -929,9 +1380,13 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             results_section["details_accordion_7"],
             results_section["details_accordion_8"],
             results_section["restore_params_btn"],
-        ]
+        ],
     )
-    
+
+    # =========================================================================
+    # Batch Navigation - Next
+    # =========================================================================
+
     results_section["next_batch_btn"].click(
         fn=res_h.capture_current_params,
         inputs=[
@@ -980,7 +1435,9 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["track_name"],
             generation_section["complete_track_classes"],
         ],
-        outputs=[results_section["generation_params_state"]]
+        outputs=[
+            results_section["generation_params_state"]
+        ],
     ).then(
         fn=res_h.navigate_to_next_batch,
         inputs=[
@@ -1039,14 +1496,24 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             results_section["details_accordion_7"],
             results_section["details_accordion_8"],
             results_section["restore_params_btn"],
-        ]
+        ],
     ).then(
-        fn=lambda selected_model, *args: res_h.generate_next_batch_background(
-            dit_handler_2 if (dit_handler_2 is not None and selected_model == config_path_2) else dit_handler,
-            llm_handler, *args
+        fn=lambda selected_model, *args: (
+            res_h.generate_next_batch_background(
+                (
+                    dit_handler_2
+                    if (
+                        dit_handler_2 is not None
+                        and selected_model == config_path_2
+                    )
+                    else dit_handler
+                ),
+                llm_handler,
+                *args,
+            )
         ),
         inputs=[
-            generation_section["dit_model_selector"],  # Model selection input
+            generation_section["dit_model_selector"],
             generation_section["autogen_checkbox"],
             results_section["generation_params_state"],
             results_section["current_batch_index"],
@@ -1059,15 +1526,18 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             results_section["total_batches"],
             results_section["next_batch_status"],
             results_section["next_batch_btn"],
-        ]
+        ],
     )
-    
-    # ========== Restore Parameters Handler ==========
+
+    # =========================================================================
+    # Restore Batch Parameters
+    # =========================================================================
+
     results_section["restore_params_btn"].click(
         fn=res_h.restore_batch_parameters,
         inputs=[
             results_section["current_batch_index"],
-            results_section["batch_queue"]
+            results_section["batch_queue"],
         ],
         outputs=[
             generation_section["text2music_audio_code_string"],
@@ -1090,36 +1560,55 @@ def setup_event_handlers(demo, dit_handler, llm_handler, dataset_handler, datase
             generation_section["allow_lm_batch"],
             generation_section["track_name"],
             generation_section["complete_track_classes"],
-        ]
+        ],
     )
-    
-    # ========== LRC Display Change Handlers ==========
-    # NEW APPROACH: Use lrc_display.change() to update audio subtitles
-    # This decouples audio value updates from subtitle updates, avoiding flickering.
+
+    # =========================================================================
+    # LRC Display Change Handlers
+    # =========================================================================
+
+    # LRC updates are deliberately separated from audio-value updates.
+    # This avoids unnecessary audio-player reloads and UI flickering.
     #
-    # When lrc_display text changes (from generate, LRC button, or manual edit):
-    # 1. lrc_display.change() is triggered
-    # 2. update_audio_subtitles_from_lrc() parses LRC and updates audio subtitles
-    # 3. Audio value is NEVER updated here - only subtitles
+    # When LRC text changes:
+    # 1. The LRC change event fires.
+    # 2. LRC is parsed into subtitle data.
+    # 3. Only subtitle metadata is updated.
+    # 4. The underlying generated audio value remains unchanged.
+
     for lrc_idx in range(1, 9):
-        results_section[f"lrc_display_{lrc_idx}"].change(
+        results_section[
+            f"lrc_display_{lrc_idx}"
+        ].change(
             fn=res_h.update_audio_subtitles_from_lrc,
             inputs=[
-                results_section[f"lrc_display_{lrc_idx}"],
-                # audio_duration not needed - parse_lrc_to_subtitles calculates end time from timestamps
+                results_section[
+                    f"lrc_display_{lrc_idx}"
+                ]
             ],
             outputs=[
-                results_section[f"generated_audio_{lrc_idx}"],  # Only updates subtitles, not value
-            ]
+                results_section[
+                    f"generated_audio_{lrc_idx}"
+                ]
+            ],
         )
 
 
-def setup_training_event_handlers(demo, dit_handler, llm_handler, training_section):
-    """Setup event handlers for the training tab (dataset builder and LoRA training)"""
-    
-    # ========== Load Existing Dataset (Top Section) ==========
-    
-    # Load existing dataset JSON at the top of Dataset Builder
+def setup_training_event_handlers(
+    demo,
+    dit_handler,
+    llm_handler,
+    training_section,
+):
+    """
+    Setup event handlers for the Synapse Music V12 dataset builder,
+    preprocessing pipeline, and LoRA training interface.
+    """
+
+    # =========================================================================
+    # Load Existing Dataset
+    # =========================================================================
+
     training_section["load_json_btn"].click(
         fn=train_h.load_existing_dataset_for_preprocess,
         inputs=[
@@ -1131,7 +1620,6 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["audio_files_table"],
             training_section["sample_selector"],
             training_section["dataset_builder_state"],
-            # Also update preview fields with first sample
             training_section["preview_audio"],
             training_section["preview_filename"],
             training_section["edit_caption"],
@@ -1142,15 +1630,23 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["edit_duration"],
             training_section["edit_language"],
             training_section["edit_instrumental"],
-        ]
+        ],
     )
-    
-    # ========== Dataset Builder Handlers ==========
-    
-    # Scan directory for audio files
+
+    # =========================================================================
+    # Dataset Builder
+    # =========================================================================
+
     training_section["scan_btn"].click(
-        fn=lambda dir, name, tag, pos, instr, state: train_h.scan_directory(
-            dir, name, tag, pos, instr, state
+        fn=lambda directory, name, tag, position, instrumental, state: (
+            train_h.scan_directory(
+                directory,
+                name,
+                tag,
+                position,
+                instrumental,
+                state,
+            )
         ),
         inputs=[
             training_section["audio_directory"],
@@ -1165,12 +1661,20 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["scan_status"],
             training_section["sample_selector"],
             training_section["dataset_builder_state"],
-        ]
+        ],
     )
-    
-    # Auto-label all samples
+
+    # =========================================================================
+    # Synapse Composer Auto-Label
+    # =========================================================================
+
     training_section["auto_label_btn"].click(
-        fn=lambda state, skip: train_h.auto_label_all(dit_handler, llm_handler, state, skip),
+        fn=lambda state, skip: train_h.auto_label_all(
+            dit_handler,
+            llm_handler,
+            state,
+            skip,
+        ),
         inputs=[
             training_section["dataset_builder_state"],
             training_section["skip_metas"],
@@ -1179,10 +1683,13 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["audio_files_table"],
             training_section["label_progress"],
             training_section["dataset_builder_state"],
-        ]
+        ],
     )
-    
-    # Sample selector change - update preview
+
+    # =========================================================================
+    # Dataset Sample Preview
+    # =========================================================================
+
     training_section["sample_selector"].change(
         fn=train_h.get_sample_preview,
         inputs=[
@@ -1200,10 +1707,13 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["edit_duration"],
             training_section["edit_language"],
             training_section["edit_instrumental"],
-        ]
+        ],
     )
-    
-    # Save sample edit
+
+    # =========================================================================
+    # Save Sample Edits
+    # =========================================================================
+
     training_section["save_edit_btn"].click(
         fn=train_h.save_sample_edit,
         inputs=[
@@ -1221,11 +1731,18 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["audio_files_table"],
             training_section["edit_status"],
             training_section["dataset_builder_state"],
-        ]
+        ],
     )
-    
-    # Update settings when changed
-    for trigger in [training_section["custom_tag"], training_section["tag_position"], training_section["all_instrumental"]]:
+
+    # =========================================================================
+    # Dataset Settings
+    # =========================================================================
+
+    for trigger in [
+        training_section["custom_tag"],
+        training_section["tag_position"],
+        training_section["all_instrumental"],
+    ]:
         trigger.change(
             fn=train_h.update_settings,
             inputs=[
@@ -1234,10 +1751,15 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
                 training_section["all_instrumental"],
                 training_section["dataset_builder_state"],
             ],
-            outputs=[training_section["dataset_builder_state"]]
+            outputs=[
+                training_section["dataset_builder_state"]
+            ],
         )
-    
-    # Save dataset
+
+    # =========================================================================
+    # Save Dataset
+    # =========================================================================
+
     training_section["save_dataset_btn"].click(
         fn=train_h.save_dataset,
         inputs=[
@@ -1245,14 +1767,18 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["dataset_name"],
             training_section["dataset_builder_state"],
         ],
-        outputs=[training_section["save_status"]]
+        outputs=[
+            training_section["save_status"]
+        ],
     )
-    
-    # ========== Preprocess Handlers ==========
-    
-    # Load existing dataset JSON for preprocessing
-    # This also updates the preview section so users can view/edit samples
-    training_section["load_existing_dataset_btn"].click(
+
+    # =========================================================================
+    # Preprocessing
+    # =========================================================================
+
+    training_section[
+        "load_existing_dataset_btn"
+    ].click(
         fn=train_h.load_existing_dataset_for_preprocess,
         inputs=[
             training_section["load_existing_dataset_path"],
@@ -1263,7 +1789,6 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["audio_files_table"],
             training_section["sample_selector"],
             training_section["dataset_builder_state"],
-            # Also update preview fields with first sample
             training_section["preview_audio"],
             training_section["preview_filename"],
             training_section["edit_caption"],
@@ -1274,41 +1799,98 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["edit_duration"],
             training_section["edit_language"],
             training_section["edit_instrumental"],
-        ]
+        ],
     )
-    
-    # Preprocess dataset to tensor files
+
     training_section["preprocess_btn"].click(
         fn=lambda output_dir, state: train_h.preprocess_dataset(
-            output_dir, dit_handler, state
+            output_dir,
+            dit_handler,
+            state,
         ),
         inputs=[
             training_section["preprocess_output_dir"],
             training_section["dataset_builder_state"],
         ],
-        outputs=[training_section["preprocess_progress"]]
+        outputs=[
+            training_section["preprocess_progress"]
+        ],
     )
-    
-    # ========== Training Tab Handlers ==========
-    
-    # Load preprocessed tensor dataset
+
+    # =========================================================================
+    # Load Preprocessed Training Dataset
+    # =========================================================================
+
     training_section["load_dataset_btn"].click(
         fn=train_h.load_training_dataset,
-        inputs=[training_section["training_tensor_dir"]],
-        outputs=[training_section["training_dataset_info"]]
+        inputs=[
+            training_section["training_tensor_dir"]
+        ],
+        outputs=[
+            training_section["training_dataset_info"]
+        ],
     )
-    
-    # Start training from preprocessed tensors
-    def training_wrapper(tensor_dir, r, a, d, lr, ep, bs, ga, se, sh, sd, od, ts):
+
+    # =========================================================================
+    # Synapse LoRA Training
+    # =========================================================================
+
+    def training_wrapper(
+        tensor_dir,
+        r,
+        a,
+        d,
+        lr,
+        ep,
+        bs,
+        ga,
+        se,
+        sh,
+        sd,
+        od,
+        ts,
+    ):
         try:
-            for progress, log, plot, state in train_h.start_training(
-                tensor_dir, dit_handler, r, a, d, lr, ep, bs, ga, se, sh, sd, od, ts
+            for (
+                progress,
+                log,
+                plot,
+                state,
+            ) in train_h.start_training(
+                tensor_dir,
+                dit_handler,
+                r,
+                a,
+                d,
+                lr,
+                ep,
+                bs,
+                ga,
+                se,
+                sh,
+                sd,
+                od,
+                ts,
             ):
-                yield progress, log, plot, state
-        except Exception as e:
-            logger.exception("Training wrapper error")
-            yield f"❌ Error: {str(e)}", str(e), None, ts
-    
+                yield (
+                    progress,
+                    log,
+                    plot,
+                    state,
+                )
+
+        except Exception as error:
+            logger.exception(
+                "Synapse training wrapper error"
+            )
+
+            yield (
+                f"❌ Error: {str(error)}",
+                str(error),
+                None,
+                ts,
+            )
+
     training_section["start_training_btn"].click(
         fn=training_wrapper,
         inputs=[
@@ -1331,25 +1913,35 @@ def setup_training_event_handlers(demo, dit_handler, llm_handler, training_secti
             training_section["training_log"],
             training_section["training_loss_plot"],
             training_section["training_state"],
-        ]
+        ],
     )
-    
-    # Stop training
+
+    # =========================================================================
+    # Stop Training
+    # =========================================================================
+
     training_section["stop_training_btn"].click(
         fn=train_h.stop_training,
-        inputs=[training_section["training_state"]],
+        inputs=[
+            training_section["training_state"]
+        ],
         outputs=[
             training_section["training_progress"],
             training_section["training_state"],
-        ]
+        ],
     )
-    
-    # Export LoRA
+
+    # =========================================================================
+    # Export Synapse LoRA
+    # =========================================================================
+
     training_section["export_lora_btn"].click(
         fn=train_h.export_lora,
         inputs=[
             training_section["export_path"],
             training_section["lora_output_dir"],
         ],
-        outputs=[training_section["export_status"]]
+        outputs=[
+            training_section["export_status"]
+        ],
     )
