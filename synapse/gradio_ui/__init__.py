@@ -1,0 +1,1 @@
+from synapse.gradio_ui.interfaces import create_gradio_interface
