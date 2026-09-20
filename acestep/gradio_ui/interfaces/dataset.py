@@ -1,87 +1,192 @@
 """
-Gradio UI Dataset Section Module
-Contains dataset explorer section component definitions
+Synapse Music V12 - Gradio UI Dataset Section
+
+Contains the Synapse Music dataset explorer component definitions used for
+dataset inspection, training-data review, source/reference audio inspection,
+and transferring dataset metadata into the generation interface.
 """
+
 import gradio as gr
 
 
 def create_dataset_section(dataset_handler) -> dict:
-    """Create dataset explorer section"""
-    with gr.Accordion("📊 Dataset Explorer", open=False, visible=False):
+    """
+    Create the Synapse Music V12 dataset explorer section.
+
+    Args:
+        dataset_handler:
+            Synapse dataset handler responsible for importing, searching,
+            retrieving, and processing dataset items.
+
+    Returns:
+        dict:
+            Dictionary containing all dataset explorer Gradio components.
+    """
+
+    with gr.Accordion(
+        "📊 Synapse Dataset Explorer",
+        open=False,
+        visible=False,
+    ):
+        # =====================================================================
+        # Dataset Selection / Search
+        # =====================================================================
+
         with gr.Row(equal_height=True):
             dataset_type = gr.Dropdown(
-                choices=["train", "test"],
+                choices=[
+                    "train",
+                    "test",
+                ],
                 value="train",
-                label="Dataset",
-                info="Choose dataset to explore",
-                scale=2
-            )
-            import_dataset_btn = gr.Button("📥 Import Dataset", variant="primary", scale=1)
-            
-            search_type = gr.Dropdown(
-                choices=["keys", "idx", "random"],
-                value="random",
-                label="Search Type",
-                info="How to find items",
-                scale=1
-            )
-            search_value = gr.Textbox(
-                label="Search Value",
-                placeholder="Enter keys or index (leave empty for random)",
-                info="Keys: exact match, Index: 0 to dataset size-1",
-                scale=2
+                label="Synapse Dataset",
+                info="Choose a dataset split to explore",
+                scale=2,
             )
 
+            import_dataset_btn = gr.Button(
+                "📥 Import Dataset",
+                variant="primary",
+                scale=1,
+            )
+
+            search_type = gr.Dropdown(
+                choices=[
+                    "keys",
+                    "idx",
+                    "random",
+                ],
+                value="random",
+                label="Search Type",
+                info="Choose how to find dataset items",
+                scale=1,
+            )
+
+            search_value = gr.Textbox(
+                label="Search Value",
+                placeholder=(
+                    "Enter a key or index "
+                    "(leave empty for random)"
+                ),
+                info=(
+                    "Keys: exact match. "
+                    "Index: 0 to dataset size - 1."
+                ),
+                scale=2,
+            )
+
+        # =====================================================================
+        # Generation Instruction
+        # =====================================================================
+
         instruction_display = gr.Textbox(
-            label="📝 Instruction",
+            label="📝 Generation Instruction",
             interactive=False,
-            placeholder="No instruction available",
-            lines=1
+            placeholder="No generation instruction available",
+            lines=1,
         )
-        
-        repaint_viz_plot = gr.Plot()
-        
-        with gr.Accordion("📋 Item Metadata (JSON)", open=False):
+
+        # =====================================================================
+        # Repaint Visualization
+        # =====================================================================
+
+        repaint_viz_plot = gr.Plot(
+            label="Repaint / Audio Region Visualization"
+        )
+
+        # =====================================================================
+        # Dataset Metadata
+        # =====================================================================
+
+        with gr.Accordion(
+            "📋 Dataset Item Metadata",
+            open=False,
+        ):
             item_info_json = gr.Code(
-                label="Complete Item Information",
+                label="Complete Item Metadata (JSON)",
                 language="json",
                 interactive=False,
-                lines=15
+                lines=15,
             )
-        
+
+        # =====================================================================
+        # Source Audio
+        # =====================================================================
+
         with gr.Row(equal_height=True):
             item_src_audio = gr.Audio(
                 label="Source Audio",
                 type="filepath",
                 interactive=False,
-                scale=8
+                scale=8,
             )
-            get_item_btn = gr.Button("🔍 Get Item", variant="secondary", interactive=False, scale=2)
-        
+
+            get_item_btn = gr.Button(
+                "🔍 Load Dataset Item",
+                variant="secondary",
+                interactive=False,
+                scale=2,
+            )
+
+        # =====================================================================
+        # Target / Reference Audio
+        # =====================================================================
+
         with gr.Row(equal_height=True):
             item_target_audio = gr.Audio(
                 label="Target Audio",
                 type="filepath",
                 interactive=False,
-                scale=8
+                scale=8,
             )
+
             item_refer_audio = gr.Audio(
                 label="Reference Audio",
                 type="filepath",
                 interactive=False,
-                scale=2
-            )
-        
-        with gr.Row():
-            use_src_checkbox = gr.Checkbox(
-                label="Use Source Audio from Dataset",
-                value=True,
-                info="Check to use the source audio from dataset"
+                scale=2,
             )
 
-        data_status = gr.Textbox(label="📊 Data Status", interactive=False, value="❌ No dataset imported")
-        auto_fill_btn = gr.Button("📋 Auto-fill Generation Form", variant="primary")
-    
+        # =====================================================================
+        # Dataset Source Controls
+        # =====================================================================
+
+        with gr.Row():
+            use_src_checkbox = gr.Checkbox(
+                label="Use Dataset Source Audio",
+                value=True,
+                info=(
+                    "Use the selected dataset item's source audio "
+                    "as the generation source"
+                ),
+            )
+
+        # =====================================================================
+        # Dataset Status
+        # =====================================================================
+
+        data_status = gr.Textbox(
+            label="📊 Synapse Dataset Status",
+            interactive=False,
+            value="❌ No dataset imported",
+        )
+
+        # =====================================================================
+        # Transfer Dataset Item to Generator
+        # =====================================================================
+
+        auto_fill_btn = gr.Button(
+            "📋 Send Dataset Item to Synapse Generator",
+            variant="primary",
+        )
+
+    # =========================================================================
+    # Component Registry
+    #
+    # Keep these keys stable because other Synapse UI/event modules use them
+    # to register callbacks and transfer dataset information into generation.
+    # =========================================================================
+
     return {
         "dataset_type": dataset_type,
         "import_dataset_btn": import_dataset_btn,
@@ -98,4 +203,3 @@ def create_dataset_section(dataset_handler) -> dict:
         "data_status": data_status,
         "auto_fill_btn": auto_fill_btn,
     }
-
