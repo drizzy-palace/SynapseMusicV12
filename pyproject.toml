@@ -1,19 +1,22 @@
 [project]
-name = "ace-step"
-version = "1.5.0"
-description = "ACE-Step 1.5"
+name = "synapse-music-v12"
+version = "12.0.0"
+description = "Synapse Music V12 - AI music generation powered by ACE-Step 1.5"
 readme = "README.md"
 requires-python = ">=3.11, <3.12"
 license = {text = "Apache-2.0"}
+
 dependencies = [
     # PyTorch for Linux/Windows with CUDA
     "torch==2.7.1; sys_platform != 'darwin'",
     "torchvision; sys_platform != 'darwin'",
     "torchaudio==2.7.1; sys_platform != 'darwin'",
+
     # PyTorch for macOS (CPU / MPS)
     "torch>=2.9.1; sys_platform == 'darwin'",
     "torchvision; sys_platform == 'darwin'",
     "torchaudio>=2.9.1; sys_platform == 'darwin'",
+
     # Common dependencies
     "transformers",
     "diffusers",
@@ -30,14 +33,17 @@ dependencies = [
     "numba>=0.63.1",
     "vector-quantize-pytorch>=1.27.15",
     "torchcodec>=0.9.1",
+
     # Local third-party packages
     "nano-vllm",
 ]
+
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
 url = "https://download.pytorch.org/whl/cu128"
 explicit = true
+
 
 [tool.uv.sources]
 nano-vllm = { path = "acestep/third_parts/nano-vllm" }
@@ -45,16 +51,28 @@ torch = { index = "pytorch-cu128" }
 torchvision = { index = "pytorch-cu128" }
 torchaudio = { index = "pytorch-cu128" }
 
+
 [project.scripts]
+# Synapse-branded commands
+synapse-music = "acestep.acestep_v15_pipeline:main"
+synapse-music-api = "acestep.api_server:main"
+
+# Upstream-compatible aliases.
+# Keep these so existing ACE-Step scripts and documentation continue to work.
 acestep = "acestep.acestep_v15_pipeline:main"
 acestep-api = "acestep.api_server:main"
+
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+
 [dependency-groups]
 dev = []
 
+
 [tool.hatch.build.targets.wheel]
+# Keep the upstream package namespace for compatibility while Synapse V12
+# is being built on top of ACE-Step 1.5.
 packages = ["acestep"]
