@@ -1,27 +1,31 @@
 """
 Synapse Music V12 - Hugging Face Space Entry Point
 
-Synapse Music V12 is built on the ACE-Step 1.5 architecture.
+This file serves as the main Hugging Face Space deployment entry point
+for Synapse Music V12.
 
-This file serves as the main Hugging Face Space deployment entry point.
-It initializes the Synapse Music generation services and launches the
-Gradio interface.
+It initializes the Synapse Music generation engine, Synapse Composer,
+dataset services, model routing, persistent storage, ZeroGPU integration,
+and the Gradio interface.
 
 ZeroGPU Support:
 - ZeroGPU uses the `spaces` package to intercept CUDA operations.
-- Models are loaded to "cuda" during startup, but actual GPU allocation
+- Models are loaded to "cuda" during startup, while actual GPU allocation
   is deferred by Hugging Face.
 - Handlers are registered globally so forked processes inherit them
   without pickling.
 - @spaces.GPU decorators are placed on top-level Gradio event handlers.
 - nano-vllm uses direct CUDA APIs that bypass Spaces interception,
-  therefore the PyTorch LM backend is used on ZeroGPU.
+  therefore the PyTorch Composer backend is used on ZeroGPU.
 
-Important:
-The internal Python package namespace remains `acestep` for compatibility
-with the upstream ACE-Step implementation. Synapse-specific model source
-routing is configured separately and can be overridden through environment
-variables.
+Synapse Namespace:
+- Internal Python package: `synapse`
+- Primary generation handler: `SynapseHandler`
+- Composer service: `LLMHandler`
+- Dataset service: `DatasetHandler`
+- UI package: `synapse.gradio_ui`
+
+Model identifiers use the Synapse Music V12 naming system.
 """
 
 import os
@@ -41,14 +45,24 @@ SYNAPSE_HF_ORG = os.environ.get(
     "SYNAPSEai1",
 ).strip()
 
-# Synapse model repositories.
-#
-# These variables define the intended Synapse Music model ecosystem.
-# The existing ACE-Step config/checkpoint names are intentionally preserved
-# below until the checkpoint downloader/handler is wired to these repositories.
+
+# =============================================================================
+# Synapse Music Model Ecosystem
+# =============================================================================
+
 SYNAPSE_MAIN_MODEL_REPO = os.environ.get(
     "SYNAPSE_MAIN_MODEL_REPO",
     f"{SYNAPSE_HF_ORG}/SynapseMusicV12",
+).strip()
+
+SYNAPSE_BASE_REPO = os.environ.get(
+    "SYNAPSE_BASE_REPO",
+    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-Base",
+).strip()
+
+SYNAPSE_SFT_REPO = os.environ.get(
+    "SYNAPSE_SFT_REPO",
+    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-SFT",
 ).strip()
 
 SYNAPSE_XL_TURBO_REPO = os.environ.get(
@@ -69,6 +83,11 @@ SYNAPSE_XL_SFT_REPO = os.environ.get(
 SYNAPSE_COMPOSER_4B_REPO = os.environ.get(
     "SYNAPSE_COMPOSER_4B_REPO",
     f"{SYNAPSE_HF_ORG}/SynapseMusicV12-Composer-4B",
+).strip()
+
+SYNAPSE_COMPOSER_17B_REPO = os.environ.get(
+    "SYNAPSE_COMPOSER_17B_REPO",
+    SYNAPSE_MAIN_MODEL_REPO,
 ).strip()
 
 SYNAPSE_COMPOSER_06B_REPO = os.environ.get(
@@ -96,35 +115,109 @@ SYNAPSE_VAE_REPO = os.environ.get(
 # Paths
 # =============================================================================
 
-# Get current directory (app.py location).
-current_dir = os.path.dirname(os.path.abspath(__file__))
+current_dir = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
-# Add nano-vllm to Python path (local ACE-Step third-party package).
-#
-# Keep this path under `acestep` until the internal package itself is renamed.
+# Synapse-local nano-vllm package.
 nano_vllm_path = os.path.join(
     current_dir,
-    "acestep",
+    "synapse",
     "third_parts",
     "nano-vllm",
 )
 
 if os.path.exists(nano_vllm_path):
-    sys.path.insert(0, nano_vllm_path)
+    sys.path.insert(
+        0,
+        nano_vllm_path,
+    )
 
 
 # =============================================================================
 # Environment
 # =============================================================================
 
-# Disable Gradio analytics.
 os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
-# Expose Synapse runtime metadata to child processes/modules.
-os.environ.setdefault("SYNAPSE_MUSIC_VERSION", SYNAPSE_VERSION)
-os.environ.setdefault("SYNAPSE_MUSIC_PRODUCT_NAME", SYNAPSE_PRODUCT_NAME)
+# Expose Synapse runtime metadata.
+os.environ.setdefault(
+    "SYNAPSE_MUSIC_VERSION",
+    SYNAPSE_VERSION,
+)
 
-# Clear proxy settings that may affect Gradio.
+os.environ.setdefault(
+    "SYNAPSE_MUSIC_PRODUCT_NAME",
+    SYNAPSE_PRODUCT_NAME,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_HF_ORG",
+    SYNAPSE_HF_ORG,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_MAIN_MODEL_REPO",
+    SYNAPSE_MAIN_MODEL_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_BASE_REPO",
+    SYNAPSE_BASE_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_SFT_REPO",
+    SYNAPSE_SFT_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_XL_TURBO_REPO",
+    SYNAPSE_XL_TURBO_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_XL_BASE_REPO",
+    SYNAPSE_XL_BASE_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_XL_SFT_REPO",
+    SYNAPSE_XL_SFT_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_COMPOSER_4B_REPO",
+    SYNAPSE_COMPOSER_4B_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_COMPOSER_17B_REPO",
+    SYNAPSE_COMPOSER_17B_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_COMPOSER_06B_REPO",
+    SYNAPSE_COMPOSER_06B_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_CAPTIONER_REPO",
+    SYNAPSE_CAPTIONER_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_TRANSCRIBER_REPO",
+    SYNAPSE_TRANSCRIBER_REPO,
+)
+
+os.environ.setdefault(
+    "SYNAPSE_VAE_REPO",
+    SYNAPSE_VAE_REPO,
+)
+
+
+# Clear proxy settings that may interfere with Gradio or model downloads.
 for proxy_var in (
     "http_proxy",
     "https_proxy",
@@ -132,7 +225,10 @@ for proxy_var in (
     "HTTPS_PROXY",
     "ALL_PROXY",
 ):
-    os.environ.pop(proxy_var, None)
+    os.environ.pop(
+        proxy_var,
+        None,
+    )
 
 
 # =============================================================================
@@ -140,11 +236,11 @@ for proxy_var in (
 # =============================================================================
 
 # Import spaces before torch so ZeroGPU can intercept CUDA operations.
-# This becomes a no-op outside Hugging Face Spaces.
 try:
     import spaces
 
     HAS_SPACES = True
+
 except ImportError:
     spaces = None
     HAS_SPACES = False
@@ -152,21 +248,19 @@ except ImportError:
 
 import torch
 
-# Keep upstream package imports for compatibility.
-from acestep.handler import AceStepHandler
-from acestep.llm_inference import LLMHandler
-from acestep.dataset_handler import DatasetHandler
-from acestep.gradio_ui import create_gradio_interface
+from synapse.handler import SynapseHandler
+from synapse.llm_inference import LLMHandler
+from synapse.dataset_handler import DatasetHandler
+from synapse.gradio_ui import create_gradio_interface
 
 
 # Detect Hugging Face Space environment.
-IS_HUGGINGFACE_SPACE = os.environ.get("SPACE_ID") is not None
+IS_HUGGINGFACE_SPACE = (
+    os.environ.get("SPACE_ID") is not None
+)
 
-# ZeroGPU detection.
-#
-# SPACE_HARDWARE has historically not been completely reliable, so the
-# upstream-safe behaviour is retained: Hugging Face Spaces are treated as
-# ZeroGPU-compatible unless explicitly running elsewhere.
+# Treat Hugging Face Spaces as ZeroGPU-compatible unless explicitly
+# running in another environment.
 IS_ZEROGPU = (
     IS_HUGGINGFACE_SPACE
     or os.environ.get("ZEROGPU") is not None
@@ -174,7 +268,7 @@ IS_ZEROGPU = (
 
 
 # =============================================================================
-# Utility functions
+# Utility Functions
 # =============================================================================
 
 def get_gpu_memory_gb():
@@ -189,7 +283,12 @@ def get_gpu_memory_gb():
 
     try:
         if torch.cuda.is_available():
-            total_memory = torch.cuda.get_device_properties(0).total_memory
+            total_memory = (
+                torch.cuda
+                .get_device_properties(0)
+                .total_memory
+            )
+
             return total_memory / (1024 ** 3)
 
         return 0
@@ -199,12 +298,13 @@ def get_gpu_memory_gb():
             f"Warning: Failed to detect GPU memory: {exc}",
             file=sys.stderr,
         )
+
         return 0
 
 
 def get_persistent_storage_path():
     """
-    Detect and return a writable storage path.
+    Detect and return a writable Synapse Music storage path.
 
     Hugging Face persistent storage:
     1. Persistent storage must be enabled in Space settings.
@@ -213,20 +313,28 @@ def get_persistent_storage_path():
        ./data inside the Space.
 
     Local development:
-    Set CHECKPOINT_DIR to override the checkpoint storage root.
+    Set SYNAPSE_CHECKPOINT_DIR to override the storage root.
+
+    Legacy CHECKPOINT_DIR is also accepted as a fallback while the
+    deployment environment is migrated.
 
     Example:
 
-        CHECKPOINT_DIR=/path/to/storage python app.py
+        SYNAPSE_CHECKPOINT_DIR=/path/to/storage python app.py
 
-    If CHECKPOINT_DIR points directly at a `checkpoints` directory, its
-    parent directory is used because ACE-Step expects the storage root.
+    If the configured path points directly at a `checkpoints` directory,
+    its parent directory is used as the storage root.
     """
 
-    checkpoint_dir_override = os.environ.get("CHECKPOINT_DIR")
+    checkpoint_dir_override = (
+        os.environ.get("SYNAPSE_CHECKPOINT_DIR")
+        or os.environ.get("CHECKPOINT_DIR")
+    )
 
     if checkpoint_dir_override:
-        checkpoint_dir_override = checkpoint_dir_override.strip()
+        checkpoint_dir_override = (
+            checkpoint_dir_override.strip()
+        )
 
         if (
             checkpoint_dir_override.endswith("/checkpoints")
@@ -238,13 +346,15 @@ def get_persistent_storage_path():
 
         if os.path.exists(checkpoint_dir_override):
             print(
-                "Using local Synapse checkpoint directory "
-                f"(CHECKPOINT_DIR): {checkpoint_dir_override}"
+                "Using Synapse checkpoint directory: "
+                f"{checkpoint_dir_override}"
             )
+
             return checkpoint_dir_override
 
         print(
-            "Warning: CHECKPOINT_DIR path does not exist: "
+            "Warning: Synapse checkpoint directory "
+            "does not exist: "
             f"{checkpoint_dir_override}"
         )
 
@@ -258,7 +368,11 @@ def get_persistent_storage_path():
                 ".synapse_write_test",
             )
 
-            with open(test_file, "w", encoding="utf-8") as file:
+            with open(
+                test_file,
+                "w",
+                encoding="utf-8",
+            ) as file:
                 file.write("synapse")
 
             os.remove(test_file)
@@ -288,13 +402,15 @@ def get_persistent_storage_path():
     )
 
     print(
-        "Using local Synapse storage (non-persistent): "
+        "Using local Synapse storage "
+        "(non-persistent): "
         f"{fallback_path}"
     )
 
     print(
-        "Note: Enable persistent storage in the Hugging Face "
-        "Space settings to preserve downloaded checkpoints."
+        "Note: Enable persistent storage in the "
+        "Hugging Face Space settings to preserve "
+        "downloaded Synapse checkpoints."
     )
 
     return fallback_path
@@ -302,32 +418,31 @@ def get_persistent_storage_path():
 
 def print_synapse_model_configuration():
     """
-    Print the configured Synapse Music Hugging Face model ecosystem.
-
-    These are repository sources. The actual ACE-Step checkpoint/config
-    routing remains separate until handler-level model download routing
-    is configured.
+    Print the configured Synapse Music V12 model ecosystem.
     """
 
-    print("=" * 60)
+    print("=" * 64)
     print(f"{SYNAPSE_PRODUCT_NAME} Model Ecosystem")
-    print("=" * 60)
+    print("=" * 64)
 
-    print(f"Main model:      {SYNAPSE_MAIN_MODEL_REPO}")
-    print(f"XL Turbo:        {SYNAPSE_XL_TURBO_REPO}")
-    print(f"XL Base:         {SYNAPSE_XL_BASE_REPO}")
-    print(f"XL SFT:          {SYNAPSE_XL_SFT_REPO}")
-    print(f"Composer 4B:     {SYNAPSE_COMPOSER_4B_REPO}")
-    print(f"Composer 0.6B:   {SYNAPSE_COMPOSER_06B_REPO}")
-    print(f"Captioner:       {SYNAPSE_CAPTIONER_REPO}")
-    print(f"Transcriber:     {SYNAPSE_TRANSCRIBER_REPO}")
-    print(f"VAE:             {SYNAPSE_VAE_REPO}")
+    print(f"Main model:       {SYNAPSE_MAIN_MODEL_REPO}")
+    print(f"Base:             {SYNAPSE_BASE_REPO}")
+    print(f"SFT:              {SYNAPSE_SFT_REPO}")
+    print(f"XL Turbo:         {SYNAPSE_XL_TURBO_REPO}")
+    print(f"XL Base:          {SYNAPSE_XL_BASE_REPO}")
+    print(f"XL SFT:           {SYNAPSE_XL_SFT_REPO}")
+    print(f"Composer 4B:      {SYNAPSE_COMPOSER_4B_REPO}")
+    print(f"Composer 1.7B:    {SYNAPSE_COMPOSER_17B_REPO}")
+    print(f"Composer 0.6B:    {SYNAPSE_COMPOSER_06B_REPO}")
+    print(f"Captioner:        {SYNAPSE_CAPTIONER_REPO}")
+    print(f"Transcriber:      {SYNAPSE_TRANSCRIBER_REPO}")
+    print(f"VAE:              {SYNAPSE_VAE_REPO}")
 
-    print("=" * 60)
+    print("=" * 64)
 
 
 # =============================================================================
-# Main application
+# Main Application
 # =============================================================================
 
 def main():
@@ -335,17 +450,17 @@ def main():
     Launch Synapse Music V12.
     """
 
-    print("=" * 60)
+    print("=" * 64)
     print(SYNAPSE_PRODUCT_NAME)
     print(f"Version: {SYNAPSE_VERSION}")
-    print("Foundation: ACE-Step 1.5")
-    print("=" * 60)
+    print("Synapse Music Generation Engine")
+    print("=" * 64)
 
     print_synapse_model_configuration()
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # DEBUG_UI
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     debug_ui = os.environ.get(
         "DEBUG_UI",
@@ -357,34 +472,36 @@ def main():
     )
 
     if debug_ui:
-        print("=" * 60)
+        print("=" * 64)
         print("DEBUG_UI mode enabled")
         print("- Model initialization will be skipped")
         print("- UI will remain available")
         print("- Music generation will be disabled")
-        print("=" * 60)
+        print("=" * 64)
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # ZeroGPU
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     if IS_ZEROGPU:
-        print("=" * 60)
+        print("=" * 64)
         print("Hugging Face ZeroGPU environment detected")
         print("- Using Spaces GPU allocation")
-        print("- PyTorch backend forced for Composer LM")
+        print("- PyTorch backend forced for Synapse Composer")
         print("- GPU allocated on demand during generation")
-        print("=" * 60)
+        print("=" * 64)
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Storage
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
-    persistent_storage_path = get_persistent_storage_path()
+    persistent_storage_path = (
+        get_persistent_storage_path()
+    )
 
-    # -------------------------------------------------------------------------
-    # Hardware detection
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Hardware Detection
+    # =========================================================================
 
     gpu_memory_gb = get_gpu_memory_gb()
 
@@ -405,16 +522,21 @@ def main():
     if not debug_ui and not IS_ZEROGPU:
         if auto_offload:
             print(
-                f"Detected GPU memory: {gpu_memory_gb:.2f} GiB (<16 GiB)"
+                f"Detected GPU memory: "
+                f"{gpu_memory_gb:.2f} GiB (<16 GiB)"
             )
+
             print(
-                "Auto-enabling CPU offload to reduce GPU memory usage"
+                "Auto-enabling CPU offload to reduce "
+                "GPU memory usage"
             )
 
         elif gpu_memory_gb > 0:
             print(
-                f"Detected GPU memory: {gpu_memory_gb:.2f} GiB (>=16 GiB)"
+                f"Detected GPU memory: "
+                f"{gpu_memory_gb:.2f} GiB (>=16 GiB)"
             )
+
             print(
                 "CPU offload disabled by default"
             )
@@ -424,13 +546,15 @@ def main():
                 "No CUDA GPU detected; running on CPU"
             )
 
-    # -------------------------------------------------------------------------
-    # Handler creation
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Handler Creation
+    # =========================================================================
 
-    print("Creating Synapse Music handlers...")
+    print(
+        "Creating Synapse Music handlers..."
+    )
 
-    dit_handler = AceStepHandler(
+    dit_handler = SynapseHandler(
         persistent_storage_path=persistent_storage_path
     )
 
@@ -440,49 +564,51 @@ def main():
 
     dataset_handler = DatasetHandler()
 
-    # -------------------------------------------------------------------------
-    # Model configuration
-    # -------------------------------------------------------------------------
-    #
-    # IMPORTANT:
-    #
-    # These remain ACE-Step checkpoint/config identifiers for now.
-    #
-    # Do NOT replace these with Hugging Face repository IDs until we have
-    # updated AceStepHandler's checkpoint download/resolution logic.
-    #
-    # The Synapse repository IDs defined at the top of this file describe
-    # where those checkpoints should eventually be downloaded from.
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Synapse Model Configuration
+    # =========================================================================
 
     config_path = os.environ.get(
-        "SERVICE_MODE_DIT_MODEL",
-        "acestep-v15-xl-turbo",
+        "SYNAPSE_SERVICE_DIT_MODEL",
+        os.environ.get(
+            "SERVICE_MODE_DIT_MODEL",
+            "synapse-v12-xl-turbo",
+        ),
     ).strip()
 
-    # Secondary model provides compatibility/fallback generation.
+    # Secondary model provides compatibility and fallback generation.
     config_path_2 = os.environ.get(
-        "SERVICE_MODE_DIT_MODEL_2",
-        "acestep-v15-turbo",
+        "SYNAPSE_SERVICE_DIT_MODEL_2",
+        os.environ.get(
+            "SERVICE_MODE_DIT_MODEL_2",
+            "synapse-v12-turbo",
+        ),
     ).strip()
 
     lm_model_path = os.environ.get(
-        "SERVICE_MODE_LM_MODEL",
-        "acestep-5Hz-lm-1.7B",
+        "SYNAPSE_SERVICE_COMPOSER_MODEL",
+        os.environ.get(
+            "SERVICE_MODE_LM_MODEL",
+            "synapse-composer-1.7B",
+        ),
     ).strip()
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Backend
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     # nano-vllm accesses CUDA directly and therefore bypasses the Spaces
     # ZeroGPU interception layer.
     if IS_ZEROGPU:
         backend = "pt"
+
     else:
         backend = os.environ.get(
-            "SERVICE_MODE_BACKEND",
-            "vllm",
+            "SYNAPSE_SERVICE_BACKEND",
+            os.environ.get(
+                "SERVICE_MODE_BACKEND",
+                "vllm",
+            ),
         ).strip()
 
     device = os.environ.get(
@@ -490,45 +616,45 @@ def main():
         "auto",
     ).strip()
 
-    # -------------------------------------------------------------------------
-    # Configuration logging
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Configuration Logging
+    # =========================================================================
 
-    print("=" * 60)
+    print("=" * 64)
     print("Synapse Music Service Configuration")
-    print("=" * 60)
+    print("=" * 64)
 
-    print(f"DiT model 1:       {config_path}")
+    print(f"Generation model 1:  {config_path}")
 
     if config_path_2:
-        print(f"DiT model 2:       {config_path_2}")
+        print(f"Generation model 2:  {config_path_2}")
 
-    print(f"Composer LM:       {lm_model_path}")
-    print(f"Backend:           {backend}")
-    print(f"Device:            {device}")
-    print(f"CPU offload:       {auto_offload}")
-    print(f"DEBUG_UI:          {debug_ui}")
-    print(f"Hugging Face:      {IS_HUGGINGFACE_SPACE}")
-    print(f"ZeroGPU:           {IS_ZEROGPU}")
-    print(f"Spaces installed:  {HAS_SPACES}")
+    print(f"Synapse Composer:    {lm_model_path}")
+    print(f"Backend:             {backend}")
+    print(f"Device:              {device}")
+    print(f"CPU offload:         {auto_offload}")
+    print(f"DEBUG_UI:            {debug_ui}")
+    print(f"Hugging Face:        {IS_HUGGINGFACE_SPACE}")
+    print(f"ZeroGPU:             {IS_ZEROGPU}")
+    print(f"Spaces installed:    {HAS_SPACES}")
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Flash Attention
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     use_flash_attention = (
         dit_handler.is_flash_attention_available()
     )
 
     print(
-        f"Flash Attention:   {use_flash_attention}"
+        f"Flash Attention:     {use_flash_attention}"
     )
 
-    print("=" * 60)
+    print("=" * 64)
 
-    # -------------------------------------------------------------------------
-    # Model initialization
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Model Initialization
+    # =========================================================================
 
     init_status = ""
     enable_generate = False
@@ -543,17 +669,18 @@ def main():
         enable_generate = False
 
         print(
-            "Skipping model initialization "
+            "Skipping Synapse model initialization "
             "(DEBUG_UI mode)"
         )
 
     else:
-        # ---------------------------------------------------------------------
-        # Primary DiT
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # Primary Generation Model
+        # =====================================================================
 
         print(
-            f"Initializing Synapse primary DiT: {config_path}..."
+            "Initializing Synapse primary generation model: "
+            f"{config_path}..."
         )
 
         init_status, enable_generate = (
@@ -570,27 +697,30 @@ def main():
 
         if not enable_generate:
             print(
-                "Warning: Primary DiT initialization issue: "
+                "Warning: Synapse primary generation "
+                "model initialization issue: "
                 f"{init_status}",
                 file=sys.stderr,
             )
 
         else:
             print(
-                "Synapse primary DiT initialized successfully"
+                "Synapse primary generation model "
+                "initialized successfully"
             )
 
-        # ---------------------------------------------------------------------
-        # Secondary DiT
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # Secondary Generation Model
+        # =====================================================================
 
         if config_path_2:
             print(
-                "Initializing Synapse secondary DiT: "
+                "Initializing Synapse secondary "
+                "generation model: "
                 f"{config_path_2}..."
             )
 
-            dit_handler_2 = AceStepHandler(
+            dit_handler_2 = SynapseHandler(
                 persistent_storage_path=persistent_storage_path
             )
 
@@ -614,36 +744,39 @@ def main():
 
             if not enable_generate_2:
                 print(
-                    "Warning: Secondary DiT initialization issue: "
+                    "Warning: Synapse secondary "
+                    "generation model initialization issue: "
                     f"{init_status_2}",
                     file=sys.stderr,
                 )
 
                 init_status += (
-                    "\n⚠️ Secondary DiT failed: "
+                    "\n⚠️ Secondary generation model failed: "
                     f"{init_status_2}"
                 )
 
             else:
                 print(
-                    "Synapse secondary DiT initialized successfully"
+                    "Synapse secondary generation model "
+                    "initialized successfully"
                 )
 
                 init_status += (
-                    "\n✅ Secondary DiT: "
+                    "\n✅ Secondary generation model: "
                     f"{config_path_2}"
                 )
 
-        # ---------------------------------------------------------------------
-        # Composer LM
-        # ---------------------------------------------------------------------
+        # =====================================================================
+        # Synapse Composer
+        # =====================================================================
 
         checkpoint_dir = (
             dit_handler._get_checkpoint_dir()
         )
 
         print(
-            f"Initializing Synapse Composer LM: {lm_model_path}..."
+            "Initializing Synapse Composer: "
+            f"{lm_model_path}..."
         )
 
         lm_status, lm_success = (
@@ -659,7 +792,7 @@ def main():
 
         if lm_success:
             print(
-                "Synapse Composer LM initialized successfully"
+                "Synapse Composer initialized successfully"
             )
 
             init_status += (
@@ -668,7 +801,8 @@ def main():
 
         else:
             print(
-                "Warning: Synapse Composer LM initialization failed: "
+                "Warning: Synapse Composer initialization "
+                "failed: "
                 f"{lm_status}",
                 file=sys.stderr,
             )
@@ -677,9 +811,9 @@ def main():
                 f"\n{lm_status}"
             )
 
-    # -------------------------------------------------------------------------
-    # Available models
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # Available Models
+    # =========================================================================
 
     available_dit_models = [
         config_path
@@ -693,20 +827,29 @@ def main():
             config_path_2
         )
 
-    # -------------------------------------------------------------------------
-    # UI initialization parameters
-    # -------------------------------------------------------------------------
+    # =========================================================================
+    # UI Initialization Parameters
+    # =========================================================================
 
     init_params = {
-        # Synapse metadata
+        # ---------------------------------------------------------------------
+        # Synapse Metadata
+        # ---------------------------------------------------------------------
+
         "product_name": SYNAPSE_PRODUCT_NAME,
         "version": SYNAPSE_VERSION,
 
-        # Service state
+        # ---------------------------------------------------------------------
+        # Service State
+        # ---------------------------------------------------------------------
+
         "pre_initialized": True,
         "service_mode": True,
 
-        # Checkpoints
+        # ---------------------------------------------------------------------
+        # Generation Models
+        # ---------------------------------------------------------------------
+
         "checkpoint": None,
         "config_path": config_path,
         "config_path_2": (
@@ -715,47 +858,75 @@ def main():
             else None
         ),
 
+        # ---------------------------------------------------------------------
         # Runtime
+        # ---------------------------------------------------------------------
+
         "device": device,
 
-        # Composer
+        # ---------------------------------------------------------------------
+        # Synapse Composer
+        # ---------------------------------------------------------------------
+
         "init_llm": True,
         "lm_model_path": lm_model_path,
         "backend": backend,
 
+        # ---------------------------------------------------------------------
         # Performance
+        # ---------------------------------------------------------------------
+
         "use_flash_attention": use_flash_attention,
         "offload_to_cpu": auto_offload,
         "offload_dit_to_cpu": False,
 
-        # Initialization state
+        # ---------------------------------------------------------------------
+        # Initialization State
+        # ---------------------------------------------------------------------
+
         "init_status": init_status,
         "enable_generate": enable_generate,
 
+        # ---------------------------------------------------------------------
         # Handlers
+        # ---------------------------------------------------------------------
+
         "dit_handler": dit_handler,
         "dit_handler_2": dit_handler_2,
         "available_dit_models": available_dit_models,
         "llm_handler": llm_handler,
 
+        # ---------------------------------------------------------------------
         # UI
+        # ---------------------------------------------------------------------
+
         "language": "en",
 
+        # ---------------------------------------------------------------------
         # Storage
+        # ---------------------------------------------------------------------
+
         "persistent_storage_path": persistent_storage_path,
 
+        # ---------------------------------------------------------------------
         # Development
+        # ---------------------------------------------------------------------
+
         "debug_ui": debug_ui,
 
-        # Synapse repository metadata.
-        #
-        # These become useful as we update the downstream handler and UI.
+        # ---------------------------------------------------------------------
+        # Synapse Model Repositories
+        # ---------------------------------------------------------------------
+
         "synapse_model_repos": {
             "main": SYNAPSE_MAIN_MODEL_REPO,
+            "base": SYNAPSE_BASE_REPO,
+            "sft": SYNAPSE_SFT_REPO,
             "xl_turbo": SYNAPSE_XL_TURBO_REPO,
             "xl_base": SYNAPSE_XL_BASE_REPO,
             "xl_sft": SYNAPSE_XL_SFT_REPO,
             "composer_4b": SYNAPSE_COMPOSER_4B_REPO,
+            "composer_17b": SYNAPSE_COMPOSER_17B_REPO,
             "composer_06b": SYNAPSE_COMPOSER_06B_REPO,
             "captioner": SYNAPSE_CAPTIONER_REPO,
             "transcriber": SYNAPSE_TRANSCRIBER_REPO,
@@ -763,13 +934,15 @@ def main():
         },
     }
 
-    print("=" * 60)
-    print("Synapse Music service initialization completed")
-    print("=" * 60)
+    print("=" * 64)
+    print(
+        "Synapse Music service initialization completed"
+    )
+    print("=" * 64)
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Gradio
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     print(
         "Creating Synapse Music Gradio interface..."
@@ -800,9 +973,9 @@ def main():
         max_size=queue_size
     )
 
-    # -------------------------------------------------------------------------
+    # =========================================================================
     # Launch
-    # -------------------------------------------------------------------------
+    # =========================================================================
 
     server_name = os.environ.get(
         "SYNAPSE_SERVER_NAME",
