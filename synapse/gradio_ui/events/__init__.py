@@ -824,7 +824,7 @@ def setup_event_handlers(
                     f"generated_audio_{btn_idx}"
                 ],
                 results_section[
-                    "lm_metadata_state"
+                    "composer_metadata_state"
                 ],
             ],
             outputs=[
@@ -880,7 +880,7 @@ def setup_event_handlers(
                     f"generated_audio_{btn_idx}"
                 ],
                 results_section[
-                    "lm_metadata_state"
+                    "composer_metadata_state"
                 ],
             ],
             outputs=[
@@ -1277,7 +1277,7 @@ def setup_event_handlers(
             results_section["lrc_display_6"],
             results_section["lrc_display_7"],
             results_section["lrc_display_8"],
-            results_section["lm_metadata_state"],
+            results_section["composer_metadata_state"],
             results_section["is_format_caption_state"],
             results_section["current_batch_index"],
             results_section["total_batches"],

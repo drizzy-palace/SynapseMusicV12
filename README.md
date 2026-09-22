@@ -411,7 +411,7 @@ http://localhost:7860
 The upstream-compatible command remains available:
 
 ```bash
-uv run acestep
+uv run synapse
 ```
 
 ---
@@ -433,7 +433,7 @@ http://localhost:8001
 The upstream-compatible command is also retained:
 
 ```bash
-uv run acestep-api
+uv run synapse-api
 ```
 
 See:

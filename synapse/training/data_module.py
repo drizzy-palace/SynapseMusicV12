@@ -1,7 +1,7 @@
 """
 PyTorch Lightning DataModule for LoRA Training
 
-Handles data loading and preprocessing for training ACE-Step LoRA adapters.
+Handles data loading and preprocessing for training Synapse Music V12 LoRA adapters.
 Supports both raw audio loading and preprocessed tensor loading.
 """
 
@@ -247,8 +247,8 @@ class PreprocessedDataModule(LightningDataModule if LIGHTNING_AVAILABLE else obj
 # Raw Audio Dataset (Legacy - for backward compatibility)
 # ============================================================================
 
-class AceStepTrainingDataset(Dataset):
-    """Dataset for ACE-Step LoRA training from raw audio.
+class SynapseTrainingDataset(Dataset):
+    """Dataset for Synapse Music V12 LoRA training from raw audio.
     
     DEPRECATED: Use PreprocessedTensorDataset instead for better performance.
     
@@ -373,7 +373,7 @@ def collate_training_batch(batch: List[Dict]) -> Dict[str, Any]:
     }
 
 
-class AceStepDataModule(LightningDataModule if LIGHTNING_AVAILABLE else object):
+class SynapseDataModule(LightningDataModule if LIGHTNING_AVAILABLE else object):
     """DataModule for raw audio loading (legacy).
     
     DEPRECATED: Use PreprocessedDataModule for better training performance.
@@ -417,14 +417,14 @@ class AceStepDataModule(LightningDataModule if LIGHTNING_AVAILABLE else object):
                 train_samples = [self.samples[i] for i in train_indices]
                 val_samples = [self.samples[i] for i in val_indices]
                 
-                self.train_dataset = AceStepTrainingDataset(
+                self.train_dataset = SynapseTrainingDataset(
                     train_samples, self.dit_handler, self.max_duration
                 )
-                self.val_dataset = AceStepTrainingDataset(
+                self.val_dataset = SynapseTrainingDataset(
                     val_samples, self.dit_handler, self.max_duration
                 )
             else:
-                self.train_dataset = AceStepTrainingDataset(
+                self.train_dataset = SynapseTrainingDataset(
                     self.samples, self.dit_handler, self.max_duration
                 )
                 self.val_dataset = None

@@ -1,10 +1,10 @@
-# ACE-Step Gradio 演示用户指南
+# Synapse Music V12 Gradio 演示用户指南
 
 **Language / 语言 / 言語:** [English](../en/GRADIO_GUIDE.md) | [中文](GRADIO_GUIDE.md) | [日本語](../ja/GRADIO_GUIDE.md)
 
 ---
 
-本指南提供使用 ACE-Step Gradio Web 界面进行音乐生成的综合文档，包括所有功能和设置。
+本指南提供使用 Synapse Music V12 Gradio Web 界面进行音乐生成的综合文档，包括所有功能和设置。
 
 ## 目录
 
@@ -29,7 +29,7 @@
 python app.py
 
 # 预初始化
-python app.py --config acestep-v15-turbo --init-llm
+python app.py --config synapse-v12-turbo --init-llm
 
 # 指定端口
 python app.py --port 7860
@@ -55,16 +55,16 @@ Gradio 界面包含以下主要部分：
 | 设置 | 说明 |
 |---------|-------------|
 | **检查点文件** | 选择已训练的模型检查点（如果可用）|
-| **主模型路径** | 选择 DiT 模型配置（例如 `acestep-v15-turbo`、`acestep-v15-turbo-shift3`）|
+| **主模型路径** | 选择 DiT 模型配置（例如 `synapse-v12-turbo`、`synapse-v12-turbo-shift3`）|
 | **设备** | 处理设备：`auto`（推荐）、`cuda` 或 `cpu` |
 
-### 5Hz LM 配置
+### Synapse Composer 配置
 
 | 设置 | 说明 |
 |---------|-------------|
-| **5Hz LM 模型路径** | 选择语言模型（例如 `acestep-5Hz-lm-0.6B`、`acestep-5Hz-lm-1.7B`）|
-| **5Hz LM 后端** | `vllm`（更快，推荐）或 `pt`（PyTorch，兼容性更好）|
-| **初始化 5Hz LM** | 勾选以在初始化期间加载 LM（thinking 模式必需）|
+| **Synapse Composer 模型路径** | 选择语言模型（例如 `synapse-composer-0.6B`、`synapse-composer-1.7B`）|
+| **Synapse Composer 后端** | `vllm`（更快，推荐）或 `pt`（PyTorch，兼容性更好）|
+| **初始化 Synapse Composer** | 勾选以在初始化期间加载 LM（thinking 模式必需）|
 
 ### 性能选项
 
@@ -250,7 +250,7 @@ Gradio 界面包含以下主要部分：
 
 **人声语言：** 选择人声语言。对于自动检测或纯音乐，使用"unknown"。
 
-**格式化按钮：** 点击使用 5Hz LM 增强 caption 和歌词。
+**格式化按钮：** 点击使用 Synapse Composer 增强 caption 和歌词。
 
 ### 可选参数
 
@@ -318,7 +318,7 @@ Gradio 界面包含以下主要部分：
 
 | 控制 | 说明 |
 |---------|-------------|
-| **Think** | 启用 5Hz LM 进行代码生成和元数据 |
+| **Think** | 启用 Synapse Composer 进行代码生成和元数据 |
 | **ParallelThinking** | 启用并行 LM 批处理 |
 | **CaptionRewrite** | 让 LM 增强输入 caption |
 | **AutoGen** | 完成后自动开始下一批次 |
@@ -477,7 +477,7 @@ LoRA 训练选项卡提供创建自定义 LoRA 适配器的工具。
 
 ### 加快生成速度
 
-1. **使用 turbo 模型** - 选择 `acestep-v15-turbo` 或 `acestep-v15-turbo-shift3`
+1. **使用 turbo 模型** - 选择 `synapse-v12-turbo` 或 `synapse-v12-turbo-shift3`
 2. **保持推理步数为 8** - 这是 turbo 的最佳默认值
 3. **减少批量大小** - 如果需要快速结果，降低批量大小
 4. **禁用 AutoGen** - 手动控制批次生成
@@ -504,7 +504,7 @@ LoRA 训练选项卡提供创建自定义 LoRA 适配器的工具。
 
 **没有生成音频：**
 - 检查模型是否已初始化（绿色状态消息）
-- 如果使用 thinking 模式，确保 5Hz LM 已初始化
+- 如果使用 thinking 模式，确保 Synapse Composer 已初始化
 - 检查状态输出中的错误消息
 
 **结果质量差：**
@@ -519,7 +519,7 @@ LoRA 训练选项卡提供创建自定义 LoRA 适配器的工具。
 - 减少 LM 批处理块大小
 
 **LM 不工作：**
-- 确保初始化期间勾选了"初始化 5Hz LM"
+- 确保初始化期间勾选了"初始化 Synapse Composer"
 - 检查是否选择了有效的 LM 模型路径
 - 验证 vllm 或 PyTorch 后端可用
 

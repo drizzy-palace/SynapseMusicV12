@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced profiling script for ACE-Step inference with deep LLM analysis
+Enhanced profiling script for Synapse Music V12 inference with deep LLM analysis
 
 This script helps diagnose why LLM generation is slow by tracking:
 1. Total tokens generated vs expected throughput (200 tokens/sec baseline)
@@ -40,10 +40,10 @@ if project_root not in sys.path:
 def load_env_config():
     """从 .env 文件加载配置"""
     env_config = {
-        'ACESTEP_CONFIG_PATH': 'acestep-v15-turbo',
-        'ACESTEP_LM_MODEL_PATH': 'acestep-5Hz-lm-0.6B',
-        'ACESTEP_DEVICE': 'auto',
-        'ACESTEP_LM_BACKEND': 'vllm',
+        'SYNAPSE_CONFIG_PATH': 'synapse-v12-turbo',
+        'SYNAPSE_LM_MODEL_PATH': 'synapse-composer-0.6B',
+        'SYNAPSE_DEVICE': 'auto',
+        'SYNAPSE_LM_BACKEND': 'vllm',
     }
     
     env_file = os.path.join(project_root, '.env')
@@ -65,9 +65,9 @@ def load_env_config():
     return env_config
 
 import torch
-from acestep.inference import generate_music, GenerationParams, GenerationConfig
-from acestep.handler import AceStepHandler
-from acestep.llm_inference import LLMHandler
+from synapse.inference import generate_music, GenerationParams, GenerationConfig
+from synapse.handler import SynapseHandler
+from synapse.llm_inference import LLMHandler
 
 
 class PreciseTimer:
@@ -554,17 +554,17 @@ def main():
     env_config = load_env_config()
     
     parser = argparse.ArgumentParser(
-        description="Profile ACE-Step inference with LLM debugging"
+        description="Profile Synapse Music V12 inference with LLM debugging"
     )
     parser.add_argument("--checkpoint-dir", type=str, default="./checkpoints")
-    parser.add_argument("--config-path", type=str, default=env_config['ACESTEP_CONFIG_PATH'],
-                       help=f"模型配置路径 (默认从 .env: {env_config['ACESTEP_CONFIG_PATH']})")
-    parser.add_argument("--device", type=str, default=env_config['ACESTEP_DEVICE'],
-                       help=f"设备 (默认从 .env: {env_config['ACESTEP_DEVICE']})")
-    parser.add_argument("--lm-model", type=str, default=env_config['ACESTEP_LM_MODEL_PATH'],
-                       help=f"LLM 模型路径 (默认从 .env: {env_config['ACESTEP_LM_MODEL_PATH']})")
-    parser.add_argument("--lm-backend", type=str, default=env_config['ACESTEP_LM_BACKEND'],
-                       help=f"LLM 后端 (默认从 .env: {env_config['ACESTEP_LM_BACKEND']})")
+    parser.add_argument("--config-path", type=str, default=env_config['SYNAPSE_CONFIG_PATH'],
+                       help=f"模型配置路径 (默认从 .env: {env_config['SYNAPSE_CONFIG_PATH']})")
+    parser.add_argument("--device", type=str, default=env_config['SYNAPSE_DEVICE'],
+                       help=f"设备 (默认从 .env: {env_config['SYNAPSE_DEVICE']})")
+    parser.add_argument("--lm-model", type=str, default=env_config['SYNAPSE_LM_MODEL_PATH'],
+                       help=f"LLM 模型路径 (默认从 .env: {env_config['SYNAPSE_LM_MODEL_PATH']})")
+    parser.add_argument("--lm-backend", type=str, default=env_config['SYNAPSE_LM_BACKEND'],
+                       help=f"LLM 后端 (默认从 .env: {env_config['SYNAPSE_LM_BACKEND']})")
     parser.add_argument("--no-warmup", action="store_true")
     parser.add_argument("--detailed", action="store_true")
     parser.add_argument("--llm-debug", action="store_true",
@@ -586,7 +586,7 @@ def main():
     llm_debugger = LLMDebugger()
     
     print("=" * 100)
-    print("🎵 ACE-Step Inference Profiler (LLM Performance Analysis)")
+    print("🎵 Synapse Music V12 Inference Profiler (LLM Performance Analysis)")
     print("=" * 100)
     print(f"\n模型配置 (从 .env 加载):")
     print(f"  DiT 模型: {args.config_path}")
@@ -604,7 +604,7 @@ def main():
     # Initialize models
     print(f"\nInitializing models...")
     
-    dit_handler = AceStepHandler()
+    dit_handler = SynapseHandler()
     llm_handler = LLMHandler()
     
     print("  🎹 Initializing DiT...")

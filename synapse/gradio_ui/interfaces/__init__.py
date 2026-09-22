@@ -3,12 +3,12 @@ Gradio UI Components Module
 Contains all Gradio interface component definitions and layouts
 """
 import gradio as gr
-from acestep.gradio_ui.i18n import get_i18n, t
-from acestep.gradio_ui.interfaces.dataset import create_dataset_section
-from acestep.gradio_ui.interfaces.generation import create_generation_section
-from acestep.gradio_ui.interfaces.result import create_results_section
-from acestep.gradio_ui.interfaces.training import create_training_section
-from acestep.gradio_ui.events import setup_event_handlers, setup_training_event_handlers
+from synapse.gradio_ui.i18n import get_i18n, t
+from synapse.gradio_ui.interfaces.dataset import create_dataset_section
+from synapse.gradio_ui.interfaces.generation import create_generation_section
+from synapse.gradio_ui.interfaces.result import create_results_section
+from synapse.gradio_ui.interfaces.training import create_training_section
+from synapse.gradio_ui.events import setup_event_handlers, setup_training_event_handlers
 
 
 def create_gradio_interface(dit_handler, llm_handler, dataset_handler, init_params=None, language='en') -> gr.Blocks:
@@ -68,15 +68,13 @@ def create_gradio_interface(dit_handler, llm_handler, dataset_handler, init_para
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 10px 20px; border-radius: 8px; text-align: center; margin: 8px auto; max-width: 600px;">
                 <span style="color: white; font-size: 15px;">
                     🚀 Want faster &amp; more stable experience? Try 
-                    <a href="https://acemusic.ai" target="_blank" style="color: #ffd700; font-weight: bold; text-decoration: underline;">acemusic.ai</a>
+                    <a href="https://synapsemusic.ai" target="_blank" style="color: #ffd700; font-weight: bold; text-decoration: underline;">synapsemusic.ai</a>
                     — 100% free!
                 </span>
             </div>
             <p style="margin-top: 0.5rem;">
-                <a href="https://ace-step.github.io/ace-step-v1.5.github.io/" target="_blank">Project</a> |
-                <a href="https://huggingface.co/collections/ACE-Step/ace-step-15" target="_blank">Hugging Face</a> |
-                <a href="https://modelscope.cn/models/ACE-Step/ACE-Step-v1-5" target="_blank">ModelScope</a> |
-                <a href="https://github.com/ACE-Step/ACE-Step-1.5" target="_blank">GitHub</a> |
+                <a href="https://huggingface.co/SYNAPSEai1/SynapseMusicV12" target="_blank">Synapse Music V12</a> |
+                <a href="https://github.com/drizzy-palace/SynapseMusicV12" target="_blank">GitHub</a> |
                 <a href="https://discord.gg/PeWDxrkdj7" target="_blank">Discord</a> |
                 <a href="https://arxiv.org/abs/2602.00744" target="_blank">Technical Report</a>
             </p>

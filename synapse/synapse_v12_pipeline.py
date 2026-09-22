@@ -1,5 +1,5 @@
 """
-ACE-Step V1.5 Pipeline
+Synapse Music V12 Pipeline
 Handler wrapper connecting model and UI
 """
 import os
@@ -31,20 +31,20 @@ for proxy_var in ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL
     os.environ.pop(proxy_var, None)
 
 try:
-    # When executed as a module: `python -m acestep.acestep_v15_pipeline`
-    from .handler import AceStepHandler
+    # When executed as a module: `python -m synapse.synapse_v12_pipeline`
+    from .handler import SynapseHandler
     from .llm_inference import LLMHandler
     from .dataset_handler import DatasetHandler
     from .gradio_ui import create_gradio_interface
 except ImportError:
-    # When executed as a script: `python acestep/acestep_v15_pipeline.py`
+    # When executed as a script: `python synapse/synapse_v12_pipeline.py`
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if project_root not in sys.path:
         sys.path.insert(0, project_root)
-    from acestep.handler import AceStepHandler
-    from acestep.llm_inference import LLMHandler
-    from acestep.dataset_handler import DatasetHandler
-    from acestep.gradio_ui import create_gradio_interface
+    from synapse.handler import SynapseHandler
+    from synapse.llm_inference import LLMHandler
+    from synapse.dataset_handler import DatasetHandler
+    from synapse.gradio_ui import create_gradio_interface
 
 
 def create_demo(init_params=None, language='en'):
@@ -74,7 +74,7 @@ def create_demo(init_params=None, language='en'):
         dit_handler = init_params['dit_handler']
         llm_handler = init_params['llm_handler']
     else:
-        dit_handler = AceStepHandler(persistent_storage_path=persistent_storage_path)
+        dit_handler = SynapseHandler(persistent_storage_path=persistent_storage_path)
         llm_handler = LLMHandler(persistent_storage_path=persistent_storage_path)
 
     dataset_handler = DatasetHandler()  # Dataset handler
@@ -120,7 +120,7 @@ def main():
     else:
         print("No GPU detected, running on CPU")
     
-    parser = argparse.ArgumentParser(description="Gradio Demo for ACE-Step V1.5")
+    parser = argparse.ArgumentParser(description="Gradio Demo for Synapse Music V12")
     parser.add_argument("--port", type=int, default=7860, help="Port to run the gradio server on")
     parser.add_argument("--share", action="store_true", help="Create a public link")
     parser.add_argument("--debug", action="store_true", help="Enable debug mode")
@@ -134,11 +134,11 @@ def main():
     # Service initialization arguments
     parser.add_argument("--init_service", type=lambda x: x.lower() in ['true', '1', 'yes'], default=False, help="Initialize service on startup (default: False)")
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint file path (optional, for display purposes)")
-    parser.add_argument("--config_path", type=str, default=None, help="Main model path (e.g., 'acestep-v15-turbo')")
+    parser.add_argument("--config_path", type=str, default=None, help="Main model path (e.g., 'synapse-v12-turbo')")
     parser.add_argument("--device", type=str, default="auto", choices=["auto", "cuda", "cpu"], help="Processing device (default: auto)")
-    parser.add_argument("--init_llm", type=lambda x: x.lower() in ['true', '1', 'yes'], default=True, help="Initialize 5Hz LM (default: True)")
-    parser.add_argument("--lm_model_path", type=str, default=None, help="5Hz LM model path (e.g., 'acestep-5Hz-lm-0.6B')")
-    parser.add_argument("--backend", type=str, default="vllm", choices=["vllm", "pt"], help="5Hz LM backend (default: vllm)")
+    parser.add_argument("--init_llm", type=lambda x: x.lower() in ['true', '1', 'yes'], default=True, help="Initialize Synapse Composer (default: True)")
+    parser.add_argument("--lm_model_path", type=str, default=None, help="Synapse Composer model path (e.g., 'synapse-composer-0.6B')")
+    parser.add_argument("--backend", type=str, default="vllm", choices=["vllm", "pt"], help="Synapse Composer backend (default: vllm)")
     parser.add_argument("--use_flash_attention", type=lambda x: x.lower() in ['true', '1', 'yes'], default=None, help="Use flash attention (default: auto-detect)")
     parser.add_argument("--offload_to_cpu", type=lambda x: x.lower() in ['true', '1', 'yes'], default=auto_offload, help=f"Offload models to CPU (default: {'True' if auto_offload else 'False'}, auto-detected based on GPU VRAM)")
     parser.add_argument("--offload_dit_to_cpu", type=lambda x: x.lower() in ['true', '1', 'yes'], default=False, help="Offload DiT to CPU (default: False)")
@@ -154,13 +154,13 @@ def main():
         if args.config_path is None:
             args.config_path = os.environ.get(
                 "SERVICE_MODE_DIT_MODEL",
-                "acestep-v15-turbo-fix-inst-shift-dynamic"
+                "synapse-v12-turbo"
             )
         # Default LM model for service mode (from env or fallback)
         if args.lm_model_path is None:
             args.lm_model_path = os.environ.get(
                 "SERVICE_MODE_LM_MODEL",
-                "acestep-5Hz-lm-1.7B-v4-fix"
+                "synapse-composer-1.7B-v4-fix"
             )
         # Backend for service mode (from env or fallback to vllm)
         args.backend = os.environ.get("SERVICE_MODE_BACKEND", "vllm")
@@ -176,14 +176,14 @@ def main():
             print("Initializing service from command line...")
             
             # Create handler instances for initialization
-            dit_handler = AceStepHandler()
+            dit_handler = SynapseHandler()
             llm_handler = LLMHandler()
             
             # Auto-select config_path if not provided
             if args.config_path is None:
-                available_models = dit_handler.get_available_acestep_v15_models()
+                available_models = dit_handler.get_available_synapse_v12_models()
                 if available_models:
-                    args.config_path = "acestep-v15-turbo" if "acestep-v15-turbo" in available_models else available_models[0]
+                    args.config_path = "synapse-v12-turbo" if "synapse-v12-turbo" in available_models else available_models[0]
                     print(f"Auto-selected config_path: {args.config_path}")
                 else:
                     print("Error: No available models found. Please specify --config_path", file=sys.stderr)
@@ -221,7 +221,7 @@ def main():
             if args.init_llm:
                 if args.lm_model_path is None:
                     # Try to get default LM model
-                    available_lm_models = llm_handler.get_available_5hz_lm_models()
+                    available_lm_models = llm_handler.get_available_synapse_composer_models()
                     if available_lm_models:
                         args.lm_model_path = available_lm_models[0]
                         print(f"Using default LM model: {args.lm_model_path}")
@@ -231,7 +231,7 @@ def main():
                 
                 if args.init_llm and args.lm_model_path:
                     checkpoint_dir = os.path.join(project_root, "checkpoints")
-                    print(f"Initializing 5Hz LM: {args.lm_model_path} on {args.device}...")
+                    print(f"Initializing Synapse Composer: {args.lm_model_path} on {args.device}...")
                     lm_status, lm_success = llm_handler.initialize(
                         checkpoint_dir=checkpoint_dir,
                         lm_model_path=args.lm_model_path,
@@ -242,10 +242,10 @@ def main():
                     )
                     
                     if lm_success:
-                        print(f"5Hz LM initialized successfully")
+                        print(f"Synapse Composer initialized successfully")
                         init_status += f"\n{lm_status}"
                     else:
-                        print(f"Warning: 5Hz LM initialization failed: {lm_status}", file=sys.stderr)
+                        print(f"Warning: Synapse Composer initialization failed: {lm_status}", file=sys.stderr)
                         init_status += f"\n{lm_status}"
             
             # Prepare initialization parameters for UI

@@ -80,11 +80,6 @@ SYNAPSE_XL_SFT_REPO = os.environ.get(
     f"{SYNAPSE_HF_ORG}/SynapseMusicV12-XL-SFT",
 ).strip()
 
-SYNAPSE_COMPOSER_4B_REPO = os.environ.get(
-    "SYNAPSE_COMPOSER_4B_REPO",
-    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-Composer-4B",
-).strip()
-
 SYNAPSE_COMPOSER_17B_REPO = os.environ.get(
     "SYNAPSE_COMPOSER_17B_REPO",
     SYNAPSE_MAIN_MODEL_REPO,
@@ -92,22 +87,7 @@ SYNAPSE_COMPOSER_17B_REPO = os.environ.get(
 
 SYNAPSE_COMPOSER_06B_REPO = os.environ.get(
     "SYNAPSE_COMPOSER_06B_REPO",
-    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-Composer-0.6B",
-).strip()
-
-SYNAPSE_CAPTIONER_REPO = os.environ.get(
-    "SYNAPSE_CAPTIONER_REPO",
-    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-Captioner",
-).strip()
-
-SYNAPSE_TRANSCRIBER_REPO = os.environ.get(
-    "SYNAPSE_TRANSCRIBER_REPO",
-    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-Transcriber",
-).strip()
-
-SYNAPSE_VAE_REPO = os.environ.get(
-    "SYNAPSE_VAE_REPO",
-    f"{SYNAPSE_HF_ORG}/SynapseMusicV12-VAE",
+    SYNAPSE_MAIN_MODEL_REPO,
 ).strip()
 
 
@@ -187,11 +167,6 @@ os.environ.setdefault(
 )
 
 os.environ.setdefault(
-    "SYNAPSE_COMPOSER_4B_REPO",
-    SYNAPSE_COMPOSER_4B_REPO,
-)
-
-os.environ.setdefault(
     "SYNAPSE_COMPOSER_17B_REPO",
     SYNAPSE_COMPOSER_17B_REPO,
 )
@@ -199,21 +174,6 @@ os.environ.setdefault(
 os.environ.setdefault(
     "SYNAPSE_COMPOSER_06B_REPO",
     SYNAPSE_COMPOSER_06B_REPO,
-)
-
-os.environ.setdefault(
-    "SYNAPSE_CAPTIONER_REPO",
-    SYNAPSE_CAPTIONER_REPO,
-)
-
-os.environ.setdefault(
-    "SYNAPSE_TRANSCRIBER_REPO",
-    SYNAPSE_TRANSCRIBER_REPO,
-)
-
-os.environ.setdefault(
-    "SYNAPSE_VAE_REPO",
-    SYNAPSE_VAE_REPO,
 )
 
 
@@ -431,12 +391,8 @@ def print_synapse_model_configuration():
     print(f"XL Turbo:         {SYNAPSE_XL_TURBO_REPO}")
     print(f"XL Base:          {SYNAPSE_XL_BASE_REPO}")
     print(f"XL SFT:           {SYNAPSE_XL_SFT_REPO}")
-    print(f"Composer 4B:      {SYNAPSE_COMPOSER_4B_REPO}")
     print(f"Composer 1.7B:    {SYNAPSE_COMPOSER_17B_REPO}")
     print(f"Composer 0.6B:    {SYNAPSE_COMPOSER_06B_REPO}")
-    print(f"Captioner:        {SYNAPSE_CAPTIONER_REPO}")
-    print(f"Transcriber:      {SYNAPSE_TRANSCRIBER_REPO}")
-    print(f"VAE:              {SYNAPSE_VAE_REPO}")
 
     print("=" * 64)
 
@@ -925,12 +881,8 @@ def main():
             "xl_turbo": SYNAPSE_XL_TURBO_REPO,
             "xl_base": SYNAPSE_XL_BASE_REPO,
             "xl_sft": SYNAPSE_XL_SFT_REPO,
-            "composer_4b": SYNAPSE_COMPOSER_4B_REPO,
             "composer_17b": SYNAPSE_COMPOSER_17B_REPO,
             "composer_06b": SYNAPSE_COMPOSER_06B_REPO,
-            "captioner": SYNAPSE_CAPTIONER_REPO,
-            "transcriber": SYNAPSE_TRANSCRIBER_REPO,
-            "vae": SYNAPSE_VAE_REPO,
         },
     }
 

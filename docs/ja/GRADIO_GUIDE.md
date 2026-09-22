@@ -1,10 +1,10 @@
-# ACE-Step Gradio デモユーザーガイド
+# Synapse Music V12 Gradio デモユーザーガイド
 
 **Language / 语言 / 言語:** [English](../en/GRADIO_GUIDE.md) | [中文](../zh/GRADIO_GUIDE.md) | [日本語](GRADIO_GUIDE.md)
 
 ---
 
-本ガイドはACE-Step Gradio Webインターフェースを使用した音楽生成の包括的なドキュメントを提供し、すべての機能と設定を含みます。
+本ガイドはSynapse Music V12 Gradio Webインターフェースを使用した音楽生成の包括的なドキュメントを提供し、すべての機能と設定を含みます。
 
 ## 目次
 
@@ -29,7 +29,7 @@
 python app.py
 
 # 事前初期化付き
-python app.py --config acestep-v15-turbo --init-llm
+python app.py --config synapse-v12-turbo --init-llm
 
 # 特定のポートで
 python app.py --port 7860
@@ -55,16 +55,16 @@ Gradioインターフェースは以下の主要セクションで構成され�
 | 設定 | 説明 |
 |---------|-------------|
 | **チェックポイントファイル** | トレーニング済みモデルチェックポイントを選択（利用可能な場合）|
-| **メインモデルパス** | DiTモデル設定を選択（例：`acestep-v15-turbo`、`acestep-v15-turbo-shift3`）|
+| **メインモデルパス** | DiTモデル設定を選択（例：`synapse-v12-turbo`、`synapse-v12-turbo-shift3`）|
 | **デバイス** | 処理デバイス：`auto`（推奨）、`cuda`、または `cpu` |
 
-### 5Hz LM設定
+### Synapse Composer設定
 
 | 設定 | 説明 |
 |---------|-------------|
-| **5Hz LMモデルパス** | 言語モデルを選択（例：`acestep-5Hz-lm-0.6B`、`acestep-5Hz-lm-1.7B`）|
-| **5Hz LMバックエンド** | `vllm`（より高速、推奨）または `pt`（PyTorch、互換性が高い）|
-| **5Hz LMを初期化** | 初期化時にLMを読み込むためにチェック（thinkingモードに必要）|
+| **Synapse Composerモデルパス** | 言語モデルを選択（例：`synapse-composer-0.6B`、`synapse-composer-1.7B`）|
+| **Synapse Composerバックエンド** | `vllm`（より高速、推奨）または `pt`（PyTorch、互換性が高い）|
+| **Synapse Composerを初期化** | 初期化時にLMを読み込むためにチェック（thinkingモードに必要）|
 
 ### パフォーマンスオプション
 
@@ -250,7 +250,7 @@ Gradioインターフェースは以下の主要セクションで構成され�
 
 **ボーカル言語：** ボーカルの言語を選択。自動検出またはインストゥルメンタルトラックには「unknown」を使用。
 
-**フォーマットボタン：** クリックして5Hz LMを使用してcaptionと歌詞を強化。
+**フォーマットボタン：** クリックしてSynapse Composerを使用してcaptionと歌詞を強化。
 
 ### オプションパラメータ
 
@@ -318,7 +318,7 @@ Gradioインターフェースは以下の主要セクションで構成され�
 
 | コントロール | 説明 |
 |---------|-------------|
-| **Think** | コード生成とメタデータ用の5Hz LMを有効化 |
+| **Think** | コード生成とメタデータ用のSynapse Composerを有効化 |
 | **ParallelThinking** | 並列LMバッチ処理を有効化 |
 | **CaptionRewrite** | LMに入力captionを強化させる |
 | **AutoGen** | 完了後に次のバッチを自動開始 |
@@ -477,7 +477,7 @@ LoRAトレーニングタブはカスタムLoRAアダプターを作成するた
 
 ### より高速な生成のために
 
-1. **turboモデルを使用** - `acestep-v15-turbo` または `acestep-v15-turbo-shift3` を選択
+1. **turboモデルを使用** - `synapse-v12-turbo` または `synapse-v12-turbo-shift3` を選択
 2. **推論ステップを8に保つ** - turboに最適なデフォルト
 3. **バッチサイズを減らす** - 迅速な結果が必要な場合はバッチサイズを下げる
 4. **AutoGenを無効化** - バッチ生成の手動制御
@@ -504,7 +504,7 @@ LoRAトレーニングタブはカスタムLoRAアダプターを作成するた
 
 **オーディオが生成されない：**
 - モデルが初期化されていることを確認（緑のステータスメッセージ）
-- thinkingモードを使用している場合は5Hz LMが初期化されていることを確認
+- thinkingモードを使用している場合はSynapse Composerが初期化されていることを確認
 - エラーメッセージのステータス出力を確認
 
 **結果の品質が悪い：**
@@ -519,7 +519,7 @@ LoRAトレーニングタブはカスタムLoRAアダプターを作成するた
 - LMバッチチャンクサイズを減らす
 
 **LMが機能しない：**
-- 初期化時に「5Hz LMを初期化」がチェックされていたことを確認
+- 初期化時に「Synapse Composerを初期化」がチェックされていたことを確認
 - 有効なLMモデルパスが選択されていることを確認
 - vllmまたはPyTorchバックエンドが利用可能であることを確認
 

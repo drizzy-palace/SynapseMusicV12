@@ -1,4 +1,4 @@
-# ACE-Step API Client Documentation
+# Synapse Music V12 API Client Documentation
 
 **Language / 语言 / 言語:** [English](API.md) | [中文](../zh/API.md) | [日本語](../ja/API.md)
 
@@ -68,7 +68,7 @@ Suitable for passing only text parameters, or referencing audio file paths that 
 | :--- | :--- | :--- | :--- |
 | `caption` | string | `""` | Music description prompt |
 | `lyrics` | string | `""` | Lyrics content |
-| `thinking` | bool | `false` | Whether to use 5Hz LM to generate audio codes (lm-dit behavior). |
+| `thinking` | bool | `false` | Whether to use Synapse Composer to generate audio codes (lm-dit behavior). |
 | `vocal_language` | string | `"en"` | Lyrics language (en, zh, ja, etc.) |
 | `audio_format` | string | `"mp3"` | Output format (mp3, wav, flac) |
 
@@ -84,20 +84,20 @@ Suitable for passing only text parameters, or referencing audio file paths that 
 
 | Parameter Name | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `model` | string | null | Select which DiT model to use (e.g., `"acestep-v15-turbo"`, `"acestep-v15-turbo-shift3"`). Use `/v1/models` to list available models. If not specified, uses the default model. |
+| `model` | string | null | Select which DiT model to use (e.g., `"synapse-v12-turbo"`, `"synapse-v12-turbo-shift3"`). Use `/v1/models` to list available models. If not specified, uses the default model. |
 
 **thinking Semantics (Important)**:
 
 - `thinking=false`:
-  - The server will **NOT** use 5Hz LM to generate `audio_code_string`.
+  - The server will **NOT** use Synapse Composer to generate `audio_code_string`.
   - DiT runs in **text2music** mode and **ignores** any provided `audio_code_string`.
 - `thinking=true`:
-  - The server will use 5Hz LM to generate `audio_code_string` (lm-dit behavior).
+  - The server will use Synapse Composer to generate `audio_code_string` (lm-dit behavior).
   - DiT runs with LM-generated codes for enhanced music quality.
 
 **Metadata Auto-Completion (Conditional)**:
 
-When `use_cot_caption=true` or `use_cot_language=true` or metadata fields are missing, the server may call 5Hz LM to fill the missing fields based on `caption`/`lyrics`:
+When `use_cot_caption=true` or `use_cot_language=true` or metadata fields are missing, the server may call Synapse Composer to fill the missing fields based on `caption`/`lyrics`:
 
 - `bpm`
 - `key_scale`
@@ -142,13 +142,13 @@ User-provided values always win; LM only fills the fields that are empty/missing
 | `cfg_interval_start` | float | `0.0` | CFG application start ratio (0.0-1.0) |
 | `cfg_interval_end` | float | `1.0` | CFG application end ratio (0.0-1.0) |
 
-**5Hz LM Parameters (Optional, server-side)**:
+**Synapse Composer Parameters (Optional, server-side)**:
 
-These parameters control 5Hz LM sampling, used for metadata auto-completion and (when `thinking=true`) codes generation.
+These parameters control Synapse Composer sampling, used for metadata auto-completion and (when `thinking=true`) codes generation.
 
 | Parameter Name | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `lm_model_path` | string | null | 5Hz LM checkpoint dir name (e.g. `acestep-5Hz-lm-0.6B`) |
+| `lm_model_path` | string | null | Synapse Composer checkpoint dir name (e.g. `synapse-composer-0.6B`) |
 | `lm_backend` | string | `"vllm"` | `vllm` or `pt` |
 | `lm_temperature` | float | `0.85` | Sampling temperature |
 | `lm_cfg_scale` | float | `2.5` | CFG scale (>1 enables CFG) |
@@ -258,7 +258,7 @@ curl -X POST http://localhost:8001/v1/music/generate \
   -H 'Content-Type: application/json' \
   -d '{
     "caption": "electronic dance music",
-    "model": "acestep-v15-turbo",
+    "model": "synapse-v12-turbo",
     "thinking": true
   }'
 ```
@@ -382,8 +382,8 @@ The response contains basic task information, queue status, and final results.
     "keyscale": "C Major",
     "timesignature": "4",
     "genres": null,
-    "lm_model": "acestep-5Hz-lm-0.6B",
-    "dit_model": "acestep-v15-turbo"
+    "lm_model": "synapse-composer-0.6B",
+    "dit_model": "synapse-v12-turbo"
   },
   "error": null
 }
@@ -398,7 +398,7 @@ The response contains basic task information, queue status, and final results.
 - **URL**: `/v1/music/random`
 - **Method**: `POST`
 
-This endpoint creates a sample-mode job that auto-generates caption, lyrics, and metadata via the 5Hz LM.
+This endpoint creates a sample-mode job that auto-generates caption, lyrics, and metadata via the Synapse Composer.
 
 ### 4.2 Request Parameters
 
@@ -441,15 +441,15 @@ Returns a list of available DiT models loaded on the server.
 {
   "models": [
     {
-      "name": "acestep-v15-turbo",
+      "name": "synapse-v12-turbo",
       "is_default": true
     },
     {
-      "name": "acestep-v15-turbo-shift3",
+      "name": "synapse-v12-turbo-shift3",
       "is_default": false
     }
   ],
-  "default_model": "acestep-v15-turbo"
+  "default_model": "synapse-v12-turbo"
 }
 ```
 
@@ -499,7 +499,7 @@ Returns service health status.
 ```json
 {
   "status": "ok",
-  "service": "ACE-Step API",
+  "service": "Synapse Music V12 API",
   "version": "1.0"
 }
 ```
@@ -512,23 +512,23 @@ The API server can be configured using environment variables:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `ACESTEP_API_HOST` | `127.0.0.1` | Server bind host |
-| `ACESTEP_API_PORT` | `8001` | Server bind port |
-| `ACESTEP_CONFIG_PATH` | `acestep-v15-turbo` | Primary DiT model path |
-| `ACESTEP_CONFIG_PATH2` | (empty) | Secondary DiT model path (optional) |
-| `ACESTEP_CONFIG_PATH3` | (empty) | Third DiT model path (optional) |
-| `ACESTEP_DEVICE` | `auto` | Device for model loading |
-| `ACESTEP_USE_FLASH_ATTENTION` | `true` | Enable flash attention |
-| `ACESTEP_OFFLOAD_TO_CPU` | `false` | Offload models to CPU when idle |
-| `ACESTEP_OFFLOAD_DIT_TO_CPU` | `false` | Offload DiT specifically to CPU |
-| `ACESTEP_LM_MODEL_PATH` | `acestep-5Hz-lm-0.6B` | Default 5Hz LM model |
-| `ACESTEP_LM_BACKEND` | `vllm` | LM backend (vllm or pt) |
-| `ACESTEP_LM_DEVICE` | (same as ACESTEP_DEVICE) | Device for LM |
-| `ACESTEP_LM_OFFLOAD_TO_CPU` | `false` | Offload LM to CPU |
-| `ACESTEP_QUEUE_MAXSIZE` | `200` | Maximum queue size |
-| `ACESTEP_QUEUE_WORKERS` | `1` | Number of queue workers |
-| `ACESTEP_AVG_JOB_SECONDS` | `5.0` | Initial average job duration estimate |
-| `ACESTEP_TMPDIR` | `.cache/acestep/tmp` | Temporary directory for files |
+| `SYNAPSE_API_HOST` | `127.0.0.1` | Server bind host |
+| `SYNAPSE_API_PORT` | `8001` | Server bind port |
+| `SYNAPSE_CONFIG_PATH` | `synapse-v12-turbo` | Primary DiT model path |
+| `SYNAPSE_CONFIG_PATH2` | (empty) | Secondary DiT model path (optional) |
+| `SYNAPSE_CONFIG_PATH3` | (empty) | Third DiT model path (optional) |
+| `SYNAPSE_DEVICE` | `auto` | Device for model loading |
+| `SYNAPSE_USE_FLASH_ATTENTION` | `true` | Enable flash attention |
+| `SYNAPSE_OFFLOAD_TO_CPU` | `false` | Offload models to CPU when idle |
+| `SYNAPSE_OFFLOAD_DIT_TO_CPU` | `false` | Offload DiT specifically to CPU |
+| `SYNAPSE_LM_MODEL_PATH` | `synapse-composer-0.6B` | Default Synapse Composer model |
+| `SYNAPSE_LM_BACKEND` | `vllm` | LM backend (vllm or pt) |
+| `SYNAPSE_LM_DEVICE` | (same as SYNAPSE_DEVICE) | Device for LM |
+| `SYNAPSE_LM_OFFLOAD_TO_CPU` | `false` | Offload LM to CPU |
+| `SYNAPSE_QUEUE_MAXSIZE` | `200` | Maximum queue size |
+| `SYNAPSE_QUEUE_WORKERS` | `1` | Number of queue workers |
+| `SYNAPSE_AVG_JOB_SECONDS` | `5.0` | Initial average job duration estimate |
+| `SYNAPSE_TMPDIR` | `.cache/synapse/tmp` | Temporary directory for files |
 
 ---
 
@@ -565,6 +565,6 @@ The API server can be configured using environment variables:
 
 5. **Check `avg_job_seconds`** in the response to estimate wait times.
 
-6. **Use multi-model support** by setting `ACESTEP_CONFIG_PATH2` and `ACESTEP_CONFIG_PATH3` environment variables, then select with the `model` parameter.
+6. **Use multi-model support** by setting `SYNAPSE_CONFIG_PATH2` and `SYNAPSE_CONFIG_PATH3` environment variables, then select with the `model` parameter.
 
 7. **For production**, always set proper Content-Type headers to avoid 415 errors.

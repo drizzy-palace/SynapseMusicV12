@@ -36,7 +36,7 @@ WORKDIR $HOME/app
 COPY --chown=user:user requirements.txt .
 
 # Copy the local nano-vllm package
-COPY --chown=user:user acestep/third_parts/nano-vllm ./acestep/third_parts/nano-vllm
+COPY --chown=user:user synapse/third_parts/nano-vllm ./synapse/third_parts/nano-vllm
 
 # Switch to user before installing packages
 USER user
@@ -45,7 +45,7 @@ USER user
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Install nano-vllm with --no-deps since all dependencies are already installed
-RUN pip install --no-deps ./acestep/third_parts/nano-vllm
+RUN pip install --no-deps ./synapse/third_parts/nano-vllm
 
 # Copy the rest of the application
 COPY --chown=user:user . .

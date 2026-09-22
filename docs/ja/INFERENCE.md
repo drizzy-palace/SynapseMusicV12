@@ -1,10 +1,10 @@
-# ACE-Step 推論 API ドキュメント
+# Synapse Music V12 推論 API ドキュメント
 
 **Language / 语言 / 言語:** [English](../en/INFERENCE.md) | [中文](../zh/INFERENCE.md) | [日本語](INFERENCE.md)
 
 ---
 
-本ドキュメントはACE-Step推論APIの包括的なドキュメントを提供し、サポートされているすべてのタスクタイプのパラメータ仕様を含みます。
+本ドキュメントはSynapse Music V12推論APIの包括的なドキュメントを提供し、サポートされているすべてのタスクタイプのパラメータ仕様を含みます。
 
 ## 目次
 
@@ -24,24 +24,24 @@
 ### 基本的な使用法
 
 ```python
-from acestep.handler import AceStepHandler
-from acestep.llm_inference import LLMHandler
-from acestep.inference import GenerationParams, GenerationConfig, generate_music
+from synapse.handler import SynapseHandler
+from synapse.llm_inference import LLMHandler
+from synapse.inference import GenerationParams, GenerationConfig, generate_music
 
 # ハンドラーの初期化
-dit_handler = AceStepHandler()
+dit_handler = SynapseHandler()
 llm_handler = LLMHandler()
 
 # サービスの初期化
 dit_handler.initialize_service(
     project_root="/path/to/project",
-    config_path="acestep-v15-turbo",
+    config_path="synapse-v12-turbo",
     device="cuda"
 )
 
 llm_handler.initialize(
     checkpoint_dir="/path/to/checkpoints",
-    lm_model_path="acestep-5Hz-lm-0.6B",
+    lm_model_path="synapse-composer-0.6B",
     backend="vllm",
     device="cuda"
 )
@@ -91,7 +91,7 @@ def generate_music(
 ) -> GenerationResult
 ```
 
-ACE-Stepモデルを使用して音楽を生成するメイン関数。
+Synapse Music V12モデルを使用して音楽を生成するメイン関数。
 
 #### understand_music
 
@@ -353,7 +353,7 @@ class GenerationResult:
 
 ## タスクタイプ
 
-ACE-Stepは6種類の生成タスクタイプをサポートし、それぞれ特定のユースケースに最適化されています。
+Synapse Music V12は6種類の生成タスクタイプをサポートし、それぞれ特定のユースケースに最適化されています。
 
 ### 1. Text2Music（デフォルト）
 
@@ -540,7 +540,7 @@ params = GenerationParams(
 オーディオコードを分析して音楽についてのメタデータを抽出。
 
 ```python
-from acestep.inference import understand_music
+from synapse.inference import understand_music
 
 result = understand_music(
     llm_handler=llm_handler,
@@ -572,7 +572,7 @@ else:
 自然言語の説明から完全な音楽サンプルを生成。これは「シンプルモード」/「インスピレーションモード」機能です。
 
 ```python
-from acestep.inference import create_sample
+from synapse.inference import create_sample
 
 result = create_sample(
     llm_handler=llm_handler,
@@ -610,7 +610,7 @@ else:
 ユーザー提供のcaptionとlyricsをフォーマット・強化し、構造化されたメタデータを生成。
 
 ```python
-from acestep.inference import format_sample
+from synapse.inference import format_sample
 
 result = format_sample(
     llm_handler=llm_handler,
@@ -736,4 +736,4 @@ caption="速い遅い音楽"  # テンポの矛盾
 - メインREADME：[`../../README.md`](../../README.md)
 - REST APIドキュメント：[`API.md`](API.md)
 - Gradioデモガイド：[`GRADIO_GUIDE.md`](GRADIO_GUIDE.md)
-- プロジェクトリポジトリ：[ACE-Step-1.5](https://github.com/yourusername/ACE-Step-1.5)
+- プロジェクトリポジトリ：[Synapse Music V12-1.5](https://github.com/yourusername/Synapse Music V12-1.5)
