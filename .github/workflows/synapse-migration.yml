@@ -1,0 +1,589 @@
+name: Synapse Music V12 Full Migration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    name: Full ACE-Step → Synapse Music V12 Migration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Configure Git
+        run: |
+          git config user.name "Synapse Music Migration Bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create isolated migration branch
+        id: branch
+        shell: bash
+        run: |
+          BRANCH="synapse-v12-full-migration-${GITHUB_RUN_ID}"
+
+          git switch -c "$BRANCH"
+
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+          echo "Created migration branch:"
+          echo "$BRANCH"
+
+      - name: Install migration dependencies
+        run: |
+          python --version
+
+      - name: Run full namespace migration
+        shell: python
+        run: |
+          from pathlib import Path
+          import os
+          import shutil
+          import subprocess
+
+          ROOT = Path.cwd()
+
+          print("=" * 80)
+          print("SYNAPSE MUSIC V12 FULL MIGRATION")
+          print("=" * 80)
+
+          # ------------------------------------------------------------------
+          # 1. Merge the original ACE-Step package into the Synapse namespace.
+          # ------------------------------------------------------------------
+
+          old_pkg = ROOT / "acestep"
+          new_pkg = ROOT / "synapse"
+
+          if old_pkg.exists():
+              new_pkg.mkdir(exist_ok=True)
+
+              for item in old_pkg.iterdir():
+                  destination = new_pkg / item.name
+
+                  if destination.exists():
+                      if destination.is_dir() and item.is_dir():
+                          for child in item.iterdir():
+                              target = destination / child.name
+
+                              if target.exists():
+                                  if target.is_dir():
+                                      shutil.rmtree(target)
+                                  else:
+                                      target.unlink()
+
+                              shutil.move(str(child), str(target))
+                      else:
+                          if destination.is_dir():
+                              shutil.rmtree(destination)
+                          else:
+                              destination.unlink()
+
+                          shutil.move(str(item), str(destination))
+                  else:
+                      shutil.move(str(item), str(destination))
+
+              shutil.rmtree(old_pkg)
+
+          # ------------------------------------------------------------------
+          # 2. Rename the main pipeline.
+          # ------------------------------------------------------------------
+
+          old_pipeline = new_pkg / "acestep_v15_pipeline.py"
+          new_pipeline = new_pkg / "synapse_v12_pipeline.py"
+
+          if old_pipeline.exists():
+              if new_pipeline.exists():
+                  new_pipeline.unlink()
+
+              old_pipeline.rename(new_pipeline)
+
+          # ------------------------------------------------------------------
+          # 3. Rename the skill namespace.
+          # ------------------------------------------------------------------
+
+          old_skill = ROOT / "skills" / "acemusic"
+          new_skill = ROOT / "skills" / "synapsemusic"
+
+          if old_skill.exists():
+              new_skill.parent.mkdir(parents=True, exist_ok=True)
+
+              if new_skill.exists():
+                  shutil.rmtree(new_skill)
+
+              old_skill.rename(new_skill)
+
+          # ------------------------------------------------------------------
+          # 4. Text migration.
+          #
+          # IMPORTANT:
+          # We intentionally do NOT perform a blind "ace" replacement.
+          # Words such as interface, trace, space, etc. must not be modified.
+          # ------------------------------------------------------------------
+
+          replacements = [
+              # Exact upstream/model repository IDs first.
+              (
+                  "ACE-Step/Ace-Step1.5",
+                  "SYNAPSEai1/SynapseMusicV12",
+              ),
+              (
+                  "ACE-Step/acestep-v15-base",
+                  "SYNAPSEai1/SynapseMusicV12-Base",
+              ),
+              (
+                  "ACE-Step/acestep-v15-sft",
+                  "SYNAPSEai1/SynapseMusicV12-SFT",
+              ),
+              (
+                  "ACE-Step/acestep-v15-turbo-shift3",
+                  "SYNAPSEai1/SynapseMusicV12-Turbo-Shift3",
+              ),
+              (
+                  "ACE-Step/acestep-v15-xl-turbo",
+                  "SYNAPSEai1/SynapseMusicV12-XL-Turbo",
+              ),
+              (
+                  "ACE-Step/acestep-v15-xl-base",
+                  "SYNAPSEai1/SynapseMusicV12-XL-Base",
+              ),
+              (
+                  "ACE-Step/acestep-v15-xl-sft",
+                  "SYNAPSEai1/SynapseMusicV12-XL-SFT",
+              ),
+
+              # Model/checkpoint names.
+              (
+                  "acestep-5Hz-lm-1.7B-v4-fix",
+                  "synapse-composer-1.7B-v4-fix",
+              ),
+              (
+                  "acestep-5Hz-lm-1.7B",
+                  "synapse-composer-1.7B",
+              ),
+              (
+                  "acestep-5Hz-lm-0.6B",
+                  "synapse-composer-0.6B",
+              ),
+              (
+                  "acestep-5Hz-lm-",
+                  "synapse-composer-",
+              ),
+
+              (
+                  "acestep-v15-turbo-fix-inst-shift-dynamic",
+                  "synapse-v12-turbo-fix-inst-shift-dynamic",
+              ),
+              (
+                  "acestep-v15-xl-turbo",
+                  "synapse-v12-xl-turbo",
+              ),
+              (
+                  "acestep-v15-xl-base",
+                  "synapse-v12-xl-base",
+              ),
+              (
+                  "acestep-v15-xl-sft",
+                  "synapse-v12-xl-sft",
+              ),
+              (
+                  "acestep-v15-turbo-shift3",
+                  "synapse-v12-turbo-shift3",
+              ),
+              (
+                  "acestep-v15-base",
+                  "synapse-v12-base",
+              ),
+              (
+                  "acestep-v15-sft",
+                  "synapse-v12-sft",
+              ),
+              (
+                  "acestep-v15-turbo",
+                  "synapse-v12-turbo",
+              ),
+
+              # Python namespaces / classes / symbols.
+              (
+                  "acestep_v15",
+                  "synapse_v12",
+              ),
+              (
+                  "AceStepHandler",
+                  "SynapseHandler",
+              ),
+              (
+                  "get_available_acestep_v15_models",
+                  "get_available_synapse_v12_models",
+              ),
+              (
+                  "get_available_5hz_lm_models",
+                  "get_available_synapse_composer_models",
+              ),
+
+              (
+                  "ACE_STEP",
+                  "SYNAPSE",
+              ),
+              (
+                  "ACESTEP",
+                  "SYNAPSE",
+              ),
+
+              (
+                  "ACE-Step",
+                  "Synapse Music",
+              ),
+              (
+                  "ACE Step",
+                  "Synapse Music",
+              ),
+              (
+                  "AceStep",
+                  "Synapse",
+              ),
+
+              # Lowercase package/module namespace.
+              (
+                  "acestep",
+                  "synapse",
+              ),
+
+              # Skill namespace.
+              (
+                  "acemusic",
+                  "synapsemusic",
+              ),
+          ]
+
+          # Files that are definitely text/code/config.
+          text_extensions = {
+              ".py",
+              ".json",
+              ".yaml",
+              ".yml",
+              ".toml",
+              ".txt",
+              ".md",
+              ".rst",
+              ".ini",
+              ".cfg",
+              ".conf",
+              ".sh",
+              ".bash",
+              ".zsh",
+              ".env",
+              ".example",
+              ".dockerfile",
+              ".html",
+              ".css",
+              ".js",
+              ".jsx",
+              ".ts",
+              ".tsx",
+              ".xml",
+          }
+
+          # Never touch Git internals or generated binary/model files.
+          excluded_directories = {
+              ".git",
+              ".venv",
+              "venv",
+              "__pycache__",
+              "node_modules",
+              ".pytest_cache",
+              ".mypy_cache",
+              ".ruff_cache",
+              ".tox",
+              "dist",
+              "build",
+          }
+
+          changed_files = 0
+
+          for path in ROOT.rglob("*"):
+              if not path.is_file():
+                  continue
+
+              relative = path.relative_to(ROOT)
+
+              if any(part in excluded_directories for part in relative.parts):
+                  continue
+
+              # Skip likely binary assets.
+              if path.suffix.lower() not in text_extensions:
+                  continue
+
+              try:
+                  original = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+
+              updated = original
+
+              for old, new in replacements:
+                  updated = updated.replace(old, new)
+
+              if updated != original:
+                  path.write_text(updated, encoding="utf-8")
+                  changed_files += 1
+                  print(f"MIGRATED: {relative}")
+
+          print()
+          print(f"Text files changed: {changed_files}")
+
+          # ------------------------------------------------------------------
+          # 5. Explicit package import fixes.
+          #
+          # These are kept separate so the migration remains deterministic.
+          # ------------------------------------------------------------------
+
+          import_fixes = {
+              "app.py": [
+                  ("from synapse.acestep_v15_pipeline import",
+                   "from synapse.synapse_v12_pipeline import"),
+              ],
+          }
+
+          for filename, fixes in import_fixes.items():
+              path = ROOT / filename
+
+              if not path.exists():
+                  continue
+
+              content = path.read_text(encoding="utf-8")
+
+              for old, new in fixes:
+                  content = content.replace(old, new)
+
+              path.write_text(content, encoding="utf-8")
+
+          # ------------------------------------------------------------------
+          # 6. Update common path references created by the namespace move.
+          # ------------------------------------------------------------------
+
+          path_replacements = [
+              (
+                  "synapse/acestep_v15_pipeline.py",
+                  "synapse/synapse_v12_pipeline.py",
+              ),
+              (
+                  "synapse/third_parts/nano-vllm",
+                  "synapse/third_parts/nano-vllm",
+              ),
+              (
+                  "acestep/third_parts/nano-vllm",
+                  "synapse/third_parts/nano-vllm",
+              ),
+              (
+                  "acestep/",
+                  "synapse/",
+              ),
+          ]
+
+          for path in ROOT.rglob("*"):
+              if not path.is_file():
+                  continue
+
+              relative = path.relative_to(ROOT)
+
+              if any(part in excluded_directories for part in relative.parts):
+                  continue
+
+              if path.suffix.lower() not in text_extensions:
+                  continue
+
+              try:
+                  content = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+
+              updated = content
+
+              for old, new in path_replacements:
+                  updated = updated.replace(old, new)
+
+              if updated != content:
+                  path.write_text(updated, encoding="utf-8")
+
+          # ------------------------------------------------------------------
+          # 7. Ensure the Synapse package has an __init__.py.
+          # ------------------------------------------------------------------
+
+          init_file = new_pkg / "__init__.py"
+
+          if not init_file.exists():
+              init_file.write_text(
+                  '"""Synapse Music V12."""\n',
+                  encoding="utf-8",
+              )
+
+          # ------------------------------------------------------------------
+          # 8. Update visible product metadata where present.
+          # ------------------------------------------------------------------
+
+          metadata_files = [
+              ROOT / "README.md",
+              ROOT / "pyproject.toml",
+          ]
+
+          for path in metadata_files:
+              if not path.exists():
+                  continue
+
+              content = path.read_text(encoding="utf-8")
+
+              metadata_replacements = [
+                  (
+                      "ACE-Step V1.5",
+                      "Synapse Music V12",
+                  ),
+                  (
+                      "ACE-Step V1",
+                      "Synapse Music V12",
+                  ),
+                  (
+                      "ACE-Step",
+                      "Synapse Music",
+                  ),
+                  (
+                      "Ace-Step",
+                      "Synapse Music",
+                  ),
+              ]
+
+              updated = content
+
+              for old, new in metadata_replacements:
+                  updated = updated.replace(old, new)
+
+              path.write_text(updated, encoding="utf-8")
+
+          print()
+          print("=" * 80)
+          print("MIGRATION COMPLETE")
+          print("=" * 80)
+
+      - name: Show migrated tree
+        run: |
+          echo "=== SYNAPSE PACKAGE ==="
+          find synapse -maxdepth 3 -type f | sort | head -300
+
+          echo
+          echo "=== ROOT ==="
+          find . -maxdepth 2 -type f \
+            ! -path "./.git/*" \
+            | sort \
+            | head -300
+
+      - name: Verify old ACE namespace is gone
+        shell: bash
+        run: |
+          echo "Searching for remaining semantic ACE-Step references..."
+
+          set +e
+
+          grep -RniE \
+            --exclude-dir=.git \
+            --exclude-dir=.venv \
+            --exclude-dir=venv \
+            --exclude-dir=__pycache__ \
+            --exclude-dir=node_modules \
+            --exclude='*.png' \
+            --exclude='*.jpg' \
+            --exclude='*.jpeg' \
+            --exclude='*.webp' \
+            --exclude='*.mp3' \
+            --exclude='*.wav' \
+            --exclude='*.safetensors' \
+            --exclude='*.bin' \
+            --exclude='*.pt' \
+            --exclude='*.pth' \
+            'acestep|ACE-Step|ACE Step|AceStep|ACE_STEP|acemusic' \
+            . > /tmp/ace_refs.txt
+
+          STATUS=$?
+
+          if [ -s /tmp/ace_refs.txt ]; then
+            echo
+            echo "Remaining references:"
+            cat /tmp/ace_refs.txt
+            echo
+
+            echo "These need review rather than silently being ignored."
+          else
+            echo "No remaining semantic ACE references found."
+          fi
+
+          exit 0
+
+      - name: Python syntax verification
+        shell: bash
+        run: |
+          python -m compileall -q app.py synapse
+
+      - name: Verify Synapse package
+        shell: bash
+        run: |
+          test -f synapse/__init__.py
+          test -f synapse/synapse_v12_pipeline.py
+          test -f synapse/handler.py
+          test -f synapse/constants.py
+          test -f synapse/llm_inference.py
+          test -f synapse/api_server.py
+
+          if [ -d "acestep" ]; then
+            echo "ERROR: old acestep directory still exists"
+            exit 1
+          fi
+
+          echo "Synapse package structure verified."
+
+      - name: Show Git diff summary
+        run: |
+          echo "=== STATUS ==="
+          git status --short
+
+          echo
+          echo "=== DIFF STATISTICS ==="
+          git diff --stat
+
+          echo
+          echo "=== RENAMES ==="
+          git status --short | grep '^R' || true
+
+      - name: Commit migration
+        run: |
+          git add -A
+
+          git commit \
+            -m "Complete ACE-Step to Synapse Music V12 namespace migration" \
+            -m "Migrates the application namespace, model identifiers, Python imports, pipeline names, skills, UI references, and Synapse model configuration."
+
+      - name: Push migration branch
+        run: |
+          git push \
+            --set-upstream origin "${{ steps.branch.outputs.branch }}"
+
+      - name: Migration summary
+        run: |
+          echo "============================================================"
+          echo " SYNAPSE MUSIC V12 MIGRATION BRANCH CREATED"
+          echo "============================================================"
+          echo
+          echo "Branch:"
+          echo "${{ steps.branch.outputs.branch }}"
+          echo
+          echo "Repository:"
+          echo "${{ github.repository }}"
+          echo
+          echo "Main was NOT modified."
+          echo
+          echo "Review the branch before merging."
+          echo "============================================================"
