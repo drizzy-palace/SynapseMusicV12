@@ -1,10 +1,10 @@
-# ACE-Step Inference API Documentation
+# Synapse Music V12 Inference API Documentation
 
 **Language / 语言 / 言語:** [English](INFERENCE.md) | [中文](../zh/INFERENCE.md) | [日本語](../ja/INFERENCE.md)
 
 ---
 
-This document provides comprehensive documentation for the ACE-Step inference API, including parameter specifications for all supported task types.
+This document provides comprehensive documentation for the Synapse Music V12 inference API, including parameter specifications for all supported task types.
 
 ## Table of Contents
 
@@ -24,24 +24,24 @@ This document provides comprehensive documentation for the ACE-Step inference AP
 ### Basic Usage
 
 ```python
-from acestep.handler import AceStepHandler
-from acestep.llm_inference import LLMHandler
-from acestep.inference import GenerationParams, GenerationConfig, generate_music
+from synapse.handler import SynapseHandler
+from synapse.llm_inference import LLMHandler
+from synapse.inference import GenerationParams, GenerationConfig, generate_music
 
 # Initialize handlers
-dit_handler = AceStepHandler()
+dit_handler = SynapseHandler()
 llm_handler = LLMHandler()
 
 # Initialize services
 dit_handler.initialize_service(
     project_root="/path/to/project",
-    config_path="acestep-v15-turbo",
+    config_path="synapse-v12-turbo",
     device="cuda"
 )
 
 llm_handler.initialize(
     checkpoint_dir="/path/to/checkpoints",
-    lm_model_path="acestep-5Hz-lm-0.6B",
+    lm_model_path="synapse-composer-0.6B",
     backend="vllm",
     device="cuda"
 )
@@ -91,7 +91,7 @@ def generate_music(
 ) -> GenerationResult
 ```
 
-Main function for generating music using the ACE-Step model.
+Main function for generating music using the Synapse Music V12 model.
 
 #### understand_music
 
@@ -428,7 +428,7 @@ These fields are automatically populated by the LM when CoT reasoning is enabled
 
 ## Task Types
 
-ACE-Step supports 6 different generation task types, each optimized for specific use cases.
+Synapse Music V12 supports 6 different generation task types, each optimized for specific use cases.
 
 ### 1. Text2Music (Default)
 
@@ -615,7 +615,7 @@ params = GenerationParams(
 Analyze audio codes to extract metadata about the music.
 
 ```python
-from acestep.inference import understand_music
+from synapse.inference import understand_music
 
 result = understand_music(
     llm_handler=llm_handler,
@@ -647,7 +647,7 @@ else:
 Generate a complete music sample from a natural language description. This is the "Simple Mode" / "Inspiration Mode" feature.
 
 ```python
-from acestep.inference import create_sample
+from synapse.inference import create_sample
 
 result = create_sample(
     llm_handler=llm_handler,
@@ -698,7 +698,7 @@ else:
 Format and enhance user-provided caption and lyrics, generating structured metadata.
 
 ```python
-from acestep.inference import format_sample
+from synapse.inference import format_sample
 
 result = format_sample(
     llm_handler=llm_handler,
@@ -739,7 +739,7 @@ else:
 ### Example 1: Simple Text-to-Music Generation
 
 ```python
-from acestep.inference import GenerationParams, GenerationConfig, generate_music
+from synapse.inference import GenerationParams, GenerationConfig, generate_music
 
 params = GenerationParams(
     task_type="text2music",
@@ -822,7 +822,7 @@ result = generate_music(dit_handler, llm_handler, params, config, save_dir="/out
 ### Example 5: Simple Mode with create_sample
 
 ```python
-from acestep.inference import create_sample, GenerationParams, GenerationConfig, generate_music
+from synapse.inference import create_sample, GenerationParams, GenerationConfig, generate_music
 
 # Step 1: Create sample from description
 sample = create_sample(
@@ -850,7 +850,7 @@ if sample.success:
 ### Example 6: Format and Enhance User Input
 
 ```python
-from acestep.inference import format_sample, GenerationParams, GenerationConfig, generate_music
+from synapse.inference import format_sample, GenerationParams, GenerationConfig, generate_music
 
 # Step 1: Format user input
 formatted = format_sample(
@@ -948,7 +948,7 @@ result = generate_music(dit_handler, llm_handler, params, config, save_dir="/out
 ### Example 10: Understand Audio from Codes
 
 ```python
-from acestep.inference import understand_music
+from synapse.inference import understand_music
 
 # Analyze audio codes (e.g., from a previous generation)
 result = understand_music(
@@ -1190,4 +1190,4 @@ For more information, see:
 - Main README: [`../../README.md`](../../README.md)
 - REST API Documentation: [`API.md`](API.md)
 - Gradio Demo Guide: [`GRADIO_GUIDE.md`](GRADIO_GUIDE.md)
-- Project repository: [ACE-Step-1.5](https://github.com/yourusername/ACE-Step-1.5)
+- Project repository: [Synapse Music V12-1.5](https://github.com/yourusername/Synapse Music V12-1.5)

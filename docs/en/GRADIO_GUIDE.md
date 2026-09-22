@@ -1,10 +1,10 @@
-# ACE-Step Gradio Demo User Guide
+# Synapse Music V12 Gradio Demo User Guide
 
 **Language / 语言 / 言語:** [English](GRADIO_GUIDE.md) | [中文](../zh/GRADIO_GUIDE.md) | [日本語](../ja/GRADIO_GUIDE.md)
 
 ---
 
-This guide provides comprehensive documentation for using the ACE-Step Gradio web interface for music generation, including all features and settings.
+This guide provides comprehensive documentation for using the Synapse Music V12 Gradio web interface for music generation, including all features and settings.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ This guide provides comprehensive documentation for using the ACE-Step Gradio we
 python app.py
 
 # With pre-initialization
-python app.py --config acestep-v15-turbo --init-llm
+python app.py --config synapse-v12-turbo --init-llm
 
 # With specific port
 python app.py --port 7860
@@ -55,16 +55,16 @@ The Gradio interface consists of several main sections:
 | Setting | Description |
 |---------|-------------|
 | **Checkpoint File** | Select a trained model checkpoint (if available) |
-| **Main Model Path** | Choose the DiT model configuration (e.g., `acestep-v15-turbo`, `acestep-v15-turbo-shift3`) |
+| **Main Model Path** | Choose the DiT model configuration (e.g., `synapse-v12-turbo`, `synapse-v12-turbo-shift3`) |
 | **Device** | Processing device: `auto` (recommended), `cuda`, or `cpu` |
 
-### 5Hz LM Configuration
+### Synapse Composer Configuration
 
 | Setting | Description |
 |---------|-------------|
-| **5Hz LM Model Path** | Select the language model (e.g., `acestep-5Hz-lm-0.6B`, `acestep-5Hz-lm-1.7B`) |
-| **5Hz LM Backend** | `vllm` (faster, recommended) or `pt` (PyTorch, more compatible) |
-| **Initialize 5Hz LM** | Check to load the LM during initialization (required for thinking mode) |
+| **Synapse Composer Model Path** | Select the language model (e.g., `synapse-composer-0.6B`, `synapse-composer-1.7B`) |
+| **Synapse Composer Backend** | `vllm` (faster, recommended) or `pt` (PyTorch, more compatible) |
+| **Initialize Synapse Composer** | Check to load the LM during initialization (required for thinking mode) |
 
 ### Performance Options
 
@@ -250,7 +250,7 @@ This is where I belong
 
 **Vocal Language:** Select the language for vocals. Use "unknown" for auto-detection or instrumental tracks.
 
-**Format button:** Click to enhance caption and lyrics using the 5Hz LM.
+**Format button:** Click to enhance caption and lyrics using the Synapse Composer.
 
 ### Optional Parameters
 
@@ -318,7 +318,7 @@ This is where I belong
 
 | Control | Description |
 |---------|-------------|
-| **Think** | Enable 5Hz LM for code generation and metadata |
+| **Think** | Enable Synapse Composer for code generation and metadata |
 | **ParallelThinking** | Enable parallel LM batch processing |
 | **CaptionRewrite** | Let LM enhance the input caption |
 | **AutoGen** | Automatically start next batch after completion |
@@ -477,7 +477,7 @@ After training, export the final adapter:
 
 ### For Faster Generation
 
-1. **Use turbo model** - Select `acestep-v15-turbo` or `acestep-v15-turbo-shift3`
+1. **Use turbo model** - Select `synapse-v12-turbo` or `synapse-v12-turbo-shift3`
 2. **Keep inference steps at 8** - Default is optimal for turbo
 3. **Reduce batch size** - Lower batch size if you need quick results
 4. **Disable AutoGen** - Manual control over batch generation
@@ -504,7 +504,7 @@ After training, export the final adapter:
 
 **No audio generated:**
 - Check that the model is initialized (green status message)
-- Ensure 5Hz LM is initialized if using thinking mode
+- Ensure Synapse Composer is initialized if using thinking mode
 - Check the status output for error messages
 
 **Poor quality results:**
@@ -519,7 +519,7 @@ After training, export the final adapter:
 - Reduce LM batch chunk size
 
 **LM not working:**
-- Ensure "Initialize 5Hz LM" was checked during initialization
+- Ensure "Initialize Synapse Composer" was checked during initialization
 - Check that a valid LM model path is selected
 - Verify vllm or PyTorch backend is available
 

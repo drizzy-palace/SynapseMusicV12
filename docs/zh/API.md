@@ -1,4 +1,4 @@
-# ACE-Step API 客户端文档
+# Synapse Music V12 API 客户端文档
 
 **Language / 语言 / 言語:** [English](../en/API.md) | [中文](API.md) | [日本語](../ja/API.md)
 
@@ -68,7 +68,7 @@ API 支持大多数参数的 **snake_case** 和 **camelCase** 命名。例如：
 | :--- | :--- | :--- | :--- |
 | `caption` | string | `""` | 音乐描述提示词 |
 | `lyrics` | string | `""` | 歌词内容 |
-| `thinking` | bool | `false` | 是否使用 5Hz LM 生成音频代码（lm-dit 行为）|
+| `thinking` | bool | `false` | 是否使用 Synapse Composer 生成音频代码（lm-dit 行为）|
 | `vocal_language` | string | `"en"` | 歌词语言（en、zh、ja 等）|
 | `audio_format` | string | `"mp3"` | 输出格式（mp3、wav、flac）|
 
@@ -84,20 +84,20 @@ API 支持大多数参数的 **snake_case** 和 **camelCase** 命名。例如：
 
 | 参数名 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `model` | string | null | 选择使用哪个 DiT 模型（例如 `"acestep-v15-turbo"`、`"acestep-v15-turbo-shift3"`）。使用 `/v1/models` 列出可用模型。如果未指定，使用默认模型。|
+| `model` | string | null | 选择使用哪个 DiT 模型（例如 `"synapse-v12-turbo"`、`"synapse-v12-turbo-shift3"`）。使用 `/v1/models` 列出可用模型。如果未指定，使用默认模型。|
 
 **thinking 语义（重要）**：
 
 - `thinking=false`：
-  - 服务器**不会**使用 5Hz LM 生成 `audio_code_string`。
+  - 服务器**不会**使用 Synapse Composer 生成 `audio_code_string`。
   - DiT 以 **text2music** 模式运行，**忽略**任何提供的 `audio_code_string`。
 - `thinking=true`：
-  - 服务器将使用 5Hz LM 生成 `audio_code_string`（lm-dit 行为）。
+  - 服务器将使用 Synapse Composer 生成 `audio_code_string`（lm-dit 行为）。
   - DiT 使用 LM 生成的代码运行，以增强音乐质量。
 
 **元数据自动补全（条件性）**：
 
-当 `use_cot_caption=true` 或 `use_cot_language=true` 或元数据字段缺失时，服务器可能会调用 5Hz LM 根据 `caption`/`lyrics` 填充缺失的字段：
+当 `use_cot_caption=true` 或 `use_cot_language=true` 或元数据字段缺失时，服务器可能会调用 Synapse Composer 根据 `caption`/`lyrics` 填充缺失的字段：
 
 - `bpm`
 - `key_scale`
@@ -142,13 +142,13 @@ API 支持大多数参数的 **snake_case** 和 **camelCase** 命名。例如：
 | `cfg_interval_start` | float | `0.0` | CFG 应用起始比例（0.0-1.0）|
 | `cfg_interval_end` | float | `1.0` | CFG 应用结束比例（0.0-1.0）|
 
-**5Hz LM 参数（可选，服务器端）**：
+**Synapse Composer 参数（可选，服务器端）**：
 
-这些参数控制 5Hz LM 采样，用于元数据自动补全和（当 `thinking=true` 时）代码生成。
+这些参数控制 Synapse Composer 采样，用于元数据自动补全和（当 `thinking=true` 时）代码生成。
 
 | 参数名 | 类型 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `lm_model_path` | string | null | 5Hz LM 检查点目录名（例如 `acestep-5Hz-lm-0.6B`）|
+| `lm_model_path` | string | null | Synapse Composer 检查点目录名（例如 `synapse-composer-0.6B`）|
 | `lm_backend` | string | `"vllm"` | `vllm` 或 `pt` |
 | `lm_temperature` | float | `0.85` | 采样温度 |
 | `lm_cfg_scale` | float | `2.5` | CFG 比例（>1 启用 CFG）|
@@ -258,7 +258,7 @@ curl -X POST http://localhost:8001/v1/music/generate \
   -H 'Content-Type: application/json' \
   -d '{
     "caption": "电子舞曲",
-    "model": "acestep-v15-turbo",
+    "model": "synapse-v12-turbo",
     "thinking": true
   }'
 ```
@@ -382,8 +382,8 @@ curl -X POST http://localhost:8001/v1/music/generate \
     "keyscale": "C Major",
     "timesignature": "4",
     "genres": null,
-    "lm_model": "acestep-5Hz-lm-0.6B",
-    "dit_model": "acestep-v15-turbo"
+    "lm_model": "synapse-composer-0.6B",
+    "dit_model": "synapse-v12-turbo"
   },
   "error": null
 }
@@ -398,7 +398,7 @@ curl -X POST http://localhost:8001/v1/music/generate \
 - **URL**：`/v1/music/random`
 - **方法**：`POST`
 
-此端点创建一个样本模式任务，通过 5Hz LM 自动生成 caption、lyrics 和元数据。
+此端点创建一个样本模式任务，通过 Synapse Composer 自动生成 caption、lyrics 和元数据。
 
 ### 4.2 请求参数
 
@@ -441,15 +441,15 @@ curl -X POST http://localhost:8001/v1/music/random \
 {
   "models": [
     {
-      "name": "acestep-v15-turbo",
+      "name": "synapse-v12-turbo",
       "is_default": true
     },
     {
-      "name": "acestep-v15-turbo-shift3",
+      "name": "synapse-v12-turbo-shift3",
       "is_default": false
     }
   ],
-  "default_model": "acestep-v15-turbo"
+  "default_model": "synapse-v12-turbo"
 }
 ```
 
@@ -499,7 +499,7 @@ curl "http://localhost:8001/v1/audio?path=%2Ftmp%2Fapi_audio%2Fabc123.mp3" -o ou
 ```json
 {
   "status": "ok",
-  "service": "ACE-Step API",
+  "service": "Synapse Music V12 API",
   "version": "1.0"
 }
 ```
@@ -512,23 +512,23 @@ API 服务器可以通过环境变量进行配置：
 
 | 变量 | 默认值 | 说明 |
 | :--- | :--- | :--- |
-| `ACESTEP_API_HOST` | `127.0.0.1` | 服务器绑定主机 |
-| `ACESTEP_API_PORT` | `8001` | 服务器绑定端口 |
-| `ACESTEP_CONFIG_PATH` | `acestep-v15-turbo` | 主 DiT 模型路径 |
-| `ACESTEP_CONFIG_PATH2` | （空）| 辅助 DiT 模型路径（可选）|
-| `ACESTEP_CONFIG_PATH3` | （空）| 第三个 DiT 模型路径（可选）|
-| `ACESTEP_DEVICE` | `auto` | 模型加载设备 |
-| `ACESTEP_USE_FLASH_ATTENTION` | `true` | 启用 flash attention |
-| `ACESTEP_OFFLOAD_TO_CPU` | `false` | 空闲时将模型卸载到 CPU |
-| `ACESTEP_OFFLOAD_DIT_TO_CPU` | `false` | 专门将 DiT 卸载到 CPU |
-| `ACESTEP_LM_MODEL_PATH` | `acestep-5Hz-lm-0.6B` | 默认 5Hz LM 模型 |
-| `ACESTEP_LM_BACKEND` | `vllm` | LM 后端（vllm 或 pt）|
-| `ACESTEP_LM_DEVICE` | （与 ACESTEP_DEVICE 相同）| LM 设备 |
-| `ACESTEP_LM_OFFLOAD_TO_CPU` | `false` | 将 LM 卸载到 CPU |
-| `ACESTEP_QUEUE_MAXSIZE` | `200` | 最大队列大小 |
-| `ACESTEP_QUEUE_WORKERS` | `1` | 队列工作者数量 |
-| `ACESTEP_AVG_JOB_SECONDS` | `5.0` | 初始平均任务持续时间估算 |
-| `ACESTEP_TMPDIR` | `.cache/acestep/tmp` | 临时文件目录 |
+| `SYNAPSE_API_HOST` | `127.0.0.1` | 服务器绑定主机 |
+| `SYNAPSE_API_PORT` | `8001` | 服务器绑定端口 |
+| `SYNAPSE_CONFIG_PATH` | `synapse-v12-turbo` | 主 DiT 模型路径 |
+| `SYNAPSE_CONFIG_PATH2` | （空）| 辅助 DiT 模型路径（可选）|
+| `SYNAPSE_CONFIG_PATH3` | （空）| 第三个 DiT 模型路径（可选）|
+| `SYNAPSE_DEVICE` | `auto` | 模型加载设备 |
+| `SYNAPSE_USE_FLASH_ATTENTION` | `true` | 启用 flash attention |
+| `SYNAPSE_OFFLOAD_TO_CPU` | `false` | 空闲时将模型卸载到 CPU |
+| `SYNAPSE_OFFLOAD_DIT_TO_CPU` | `false` | 专门将 DiT 卸载到 CPU |
+| `SYNAPSE_LM_MODEL_PATH` | `synapse-composer-0.6B` | 默认 Synapse Composer 模型 |
+| `SYNAPSE_LM_BACKEND` | `vllm` | LM 后端（vllm 或 pt）|
+| `SYNAPSE_LM_DEVICE` | （与 SYNAPSE_DEVICE 相同）| LM 设备 |
+| `SYNAPSE_LM_OFFLOAD_TO_CPU` | `false` | 将 LM 卸载到 CPU |
+| `SYNAPSE_QUEUE_MAXSIZE` | `200` | 最大队列大小 |
+| `SYNAPSE_QUEUE_WORKERS` | `1` | 队列工作者数量 |
+| `SYNAPSE_AVG_JOB_SECONDS` | `5.0` | 初始平均任务持续时间估算 |
+| `SYNAPSE_TMPDIR` | `.cache/synapse/tmp` | 临时文件目录 |
 
 ---
 
@@ -565,6 +565,6 @@ API 服务器可以通过环境变量进行配置：
 
 5. **检查 `avg_job_seconds`** 响应来估算等待时间。
 
-6. **使用多模型支持** 通过设置 `ACESTEP_CONFIG_PATH2` 和 `ACESTEP_CONFIG_PATH3` 环境变量，然后通过 `model` 参数选择。
+6. **使用多模型支持** 通过设置 `SYNAPSE_CONFIG_PATH2` 和 `SYNAPSE_CONFIG_PATH3` 环境变量，然后通过 `model` 参数选择。
 
 7. **生产环境** 中，始终设置正确的 Content-Type 头以避免 415 错误。

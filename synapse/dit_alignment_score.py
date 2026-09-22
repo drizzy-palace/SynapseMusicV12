@@ -4,7 +4,7 @@ DiT Alignment Score Module
 This module provides lyrics-to-audio alignment using cross-attention matrices
 from DiT model for generating LRC timestamps.
 
-Refactored from lyrics_alignment_infos.py for integration with ACE-Step.
+Refactored from lyrics_alignment_infos.py for integration with Synapse Music V12.
 """
 import numba
 import torch

@@ -1,5 +1,5 @@
 """
-5Hz LM (Language Model) Handler
+Synapse Composer (Language Model) Handler
 Handles all LM-related operations including initialization and generation
 """
 import os
@@ -18,12 +18,12 @@ from transformers.generation.logits_process import (
     LogitsProcessorList,
     RepetitionPenaltyLogitsProcessor,
 )
-from acestep.constrained_logits_processor import MetadataConstrainedLogitsProcessor
-from acestep.constants import DEFAULT_LM_INSTRUCTION, DEFAULT_LM_UNDERSTAND_INSTRUCTION, DEFAULT_LM_INSPIRED_INSTRUCTION, DEFAULT_LM_REWRITE_INSTRUCTION
+from synapse.constrained_logits_processor import MetadataConstrainedLogitsProcessor
+from synapse.constants import DEFAULT_LM_INSTRUCTION, DEFAULT_LM_UNDERSTAND_INSTRUCTION, DEFAULT_LM_INSPIRED_INSTRUCTION, DEFAULT_LM_REWRITE_INSTRUCTION
 
 
 class LLMHandler:
-    """5Hz LM Handler for audio code generation"""
+    """Synapse Composer handler for audio-code generation."""
 
     STOP_REASONING_TAG = "</think>"
 
@@ -63,15 +63,15 @@ class LLMHandler:
         project_root = os.path.dirname(os.path.dirname(current_file))
         return os.path.join(project_root, "checkpoints")
 
-    def get_available_5hz_lm_models(self) -> List[str]:
-        """Scan and return all model directory names starting with 'acestep-5Hz-lm-'"""
+    def get_available_synapse_composer_models(self) -> List[str]:
+        """Scan and return Synapse Composer model directories."""
         checkpoint_dir = self._get_checkpoint_dir()
 
         models = []
         if os.path.exists(checkpoint_dir):
             for item in os.listdir(checkpoint_dir):
                 item_path = os.path.join(checkpoint_dir, item)
-                if os.path.isdir(item_path) and item.startswith("acestep-5Hz-lm-"):
+                if os.path.isdir(item_path) and item.startswith("synapse-composer-"):
                     models.append(item)
 
         models.sort()
@@ -259,11 +259,11 @@ class LLMHandler:
             self.llm.requires_grad_(False)
             self.llm_backend = "pt"
             self.llm_initialized = True
-            logger.info(f"5Hz LM initialized successfully using PyTorch backend on {device}")
-            status_msg = f"✅ 5Hz LM initialized successfully\nModel: {model_path}\nBackend: PyTorch ({attn_implementation})\nDevice: {device}"
+            logger.info(f"Synapse Composer initialized successfully using PyTorch backend on {device}")
+            status_msg = f"✅ Synapse Composer initialized successfully\nModel: {model_path}\nBackend: PyTorch ({attn_implementation})\nDevice: {device}"
             return True, status_msg
         except Exception as e:
-            return False, f"❌ Error initializing 5Hz LM: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+            return False, f"❌ Error initializing Synapse Composer: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
     
     def _apply_top_k_filter(self, logits: torch.Tensor, top_k: Optional[int]) -> torch.Tensor:
         """Apply top-k filtering to logits"""
@@ -350,7 +350,7 @@ class LLMHandler:
         dtype: Optional[torch.dtype] = None,
     ) -> Tuple[str, bool]:
         """
-        Initialize 5Hz LM model
+        Initialize Synapse Composer model
         
         Args:
             checkpoint_dir: Checkpoint directory path
@@ -382,18 +382,18 @@ class LLMHandler:
 
             # If lm_model_path is None, use default
             if lm_model_path is None:
-                lm_model_path = "acestep-5Hz-lm-1.7B"
+                lm_model_path = "synapse-composer-1.7B"
                 logger.info(f"[initialize] lm_model_path is None, using default: {lm_model_path}")
 
             full_lm_model_path = os.path.join(checkpoint_dir, lm_model_path)
             if not os.path.exists(full_lm_model_path):
-                return f"❌ 5Hz LM model not found at {full_lm_model_path}", False
+                return f"❌ Synapse Composer model not found at {full_lm_model_path}", False
             
-            logger.info("loading 5Hz LM tokenizer... it may take 80~90s")
+            logger.info("loading Synapse Composer tokenizer... it may take 80~90s")
             start_time = time.time()
             # TODO: load tokenizer too slow, not found solution yet
             llm_tokenizer = AutoTokenizer.from_pretrained(full_lm_model_path, use_fast=True)
-            logger.info(f"5Hz LM tokenizer loaded successfully in {time.time() - start_time:.2f} seconds")
+            logger.info(f"Synapse Composer tokenizer loaded successfully in {time.time() - start_time:.2f} seconds")
             self.llm_tokenizer = llm_tokenizer
             
             # Initialize shared constrained decoding processor (one-time initialization)
@@ -410,7 +410,7 @@ class LLMHandler:
             if backend == "vllm":
                 # Try to initialize with vllm
                 status_msg = self._initialize_5hz_lm_vllm(full_lm_model_path)
-                logger.info(f"5Hz LM status message: {status_msg}")
+                logger.info(f"Synapse Composer status message: {status_msg}")
                 # Check if initialization failed (status_msg starts with ❌)
                 if status_msg.startswith("❌"):
                     # vllm initialization failed, fallback to PyTorch
@@ -419,7 +419,7 @@ class LLMHandler:
                         success, status_msg = self._load_pytorch_model(full_lm_model_path, device)
                         if not success:
                             return status_msg, False
-                        status_msg = f"✅ 5Hz LM initialized successfully (PyTorch fallback)\nModel: {full_lm_model_path}\nBackend: PyTorch"
+                        status_msg = f"✅ Synapse Composer initialized successfully (PyTorch fallback)\nModel: {full_lm_model_path}\nBackend: PyTorch"
                 # If vllm initialization succeeded, self.llm_initialized should already be True
             else:
                 # Use PyTorch backend (pt)
@@ -430,10 +430,10 @@ class LLMHandler:
             return status_msg, True
             
         except Exception as e:
-            return f"❌ Error initializing 5Hz LM: {str(e)}\n\nTraceback:\n{traceback.format_exc()}", False
+            return f"❌ Error initializing Synapse Composer: {str(e)}\n\nTraceback:\n{traceback.format_exc()}", False
     
     def _initialize_5hz_lm_vllm(self, model_path: str) -> str:
-        """Initialize 5Hz LM model using vllm backend"""
+        """Initialize Synapse Composer model using vllm backend"""
         if not torch.cuda.is_available():
             self.llm_initialized = False
             logger.error("CUDA is not available. Please check your GPU setup.")
@@ -442,8 +442,8 @@ class LLMHandler:
             from nanovllm import LLM, SamplingParams
         except ImportError:
             self.llm_initialized = False
-            logger.error("nano-vllm is not installed. Please install it using 'cd acestep/third_parts/nano-vllm && pip install .")
-            return "❌ nano-vllm is not installed. Please install it using 'cd acestep/third_parts/nano-vllm && pip install ."
+            logger.error("nano-vllm is not installed. Please install it using 'cd synapse/third_parts/nano-vllm && pip install .")
+            return "❌ nano-vllm is not installed. Please install it using 'cd synapse/third_parts/nano-vllm && pip install ."
         
         try:
             current_device = torch.cuda.current_device()
@@ -460,7 +460,7 @@ class LLMHandler:
             else:
                 self.max_model_len = 4096
             
-            logger.info(f"Initializing 5Hz LM with model: {model_path}, enforce_eager: False, tensor_parallel_size: 1, max_model_len: {self.max_model_len}, gpu_memory_utilization: {gpu_memory_utilization}")
+            logger.info(f"Initializing Synapse Composer with model: {model_path}, enforce_eager: False, tensor_parallel_size: 1, max_model_len: {self.max_model_len}, gpu_memory_utilization: {gpu_memory_utilization}")
             start_time = time.time()
             self.llm = LLM(
                 model=model_path,
@@ -470,13 +470,13 @@ class LLMHandler:
                 gpu_memory_utilization=gpu_memory_utilization,
                 tokenizer=self.llm_tokenizer,
             )
-            logger.info(f"5Hz LM initialized successfully in {time.time() - start_time:.2f} seconds")
+            logger.info(f"Synapse Composer initialized successfully in {time.time() - start_time:.2f} seconds")
             self.llm_initialized = True
             self.llm_backend = "vllm"
-            return f"✅ 5Hz LM initialized successfully\nModel: {model_path}\nDevice: {device_name}\nGPU Memory Utilization: {gpu_memory_utilization:.2f}"
+            return f"✅ Synapse Composer initialized successfully\nModel: {model_path}\nDevice: {device_name}\nGPU Memory Utilization: {gpu_memory_utilization:.2f}"
         except Exception as e:
             self.llm_initialized = False
-            return f"❌ Error initializing 5Hz LM: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+            return f"❌ Error initializing Synapse Composer: {str(e)}\n\nTraceback:\n{traceback.format_exc()}"
 
     def _run_vllm(
         self,
@@ -1242,7 +1242,7 @@ class LLMHandler:
     
     def build_formatted_prompt(self, caption: str, lyrics: str = "", is_negative_prompt: bool = False, generation_phase: str = "cot", negative_prompt: str = "NO USER INPUT") -> str:
         """
-        Build the chat-formatted prompt for 5Hz LM from caption/lyrics.
+        Build the chat-formatted prompt for Synapse Composer from caption/lyrics.
         Raises a ValueError if the tokenizer is not initialized.
 
         Args:
@@ -1444,7 +1444,7 @@ class LLMHandler:
             print(metadata['lyrics'])   # "[Intro: ...]\\n..."
         """
         if not getattr(self, "llm_initialized", False):
-            return {}, "❌ 5Hz LM not initialized. Please initialize it first."
+            return {}, "❌ Synapse Composer not initialized. Please initialize it first."
         
         if not audio_codes or not audio_codes.strip():
             return {}, "❌ No audio codes provided. Please paste audio codes first."
@@ -1640,7 +1640,7 @@ class LLMHandler:
             print(metadata['lyrics'])   # "[Intro: ...]\\n..."
         """
         if not getattr(self, "llm_initialized", False):
-            return {}, "❌ 5Hz LM not initialized. Please initialize it first."
+            return {}, "❌ Synapse Composer not initialized. Please initialize it first."
         
         if not query or not query.strip():
             query = "NO USER INPUT"
@@ -1817,7 +1817,7 @@ class LLMHandler:
             print(metadata['bpm'])      # 100
         """
         if not getattr(self, "llm_initialized", False):
-            return {}, "❌ 5Hz LM not initialized. Please initialize it first."
+            return {}, "❌ Synapse Composer not initialized. Please initialize it first."
         
         if not caption or not caption.strip():
             caption = "NO USER INPUT"
@@ -1942,9 +1942,9 @@ class LLMHandler:
             text, status = handler.generate_from_formatted_prompt(prompt, {"temperature": 0.7})
         """
         if not getattr(self, "llm_initialized", False):
-            return "", "❌ 5Hz LM not initialized. Please initialize it first."
+            return "", "❌ Synapse Composer not initialized. Please initialize it first."
         if self.llm is None or self.llm_tokenizer is None:
-            return "", "❌ 5Hz LM is missing model or tokenizer."
+            return "", "❌ Synapse Composer is missing model or tokenizer."
 
         cfg = cfg or {}
         temperature = cfg.get("temperature", 0.6)

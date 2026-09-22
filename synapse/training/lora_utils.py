@@ -1,5 +1,5 @@
 """
-LoRA Utilities for ACE-Step
+LoRA Utilities for Synapse Music V12
 
 Provides utilities for injecting LoRA adapters into the DiT decoder model.
 Uses PEFT (Parameter-Efficient Fine-Tuning) library for LoRA implementation.
@@ -25,7 +25,7 @@ except ImportError:
     PEFT_AVAILABLE = False
     logger.warning("PEFT library not installed. LoRA training will not be available.")
 
-from acestep.training.configs import LoRAConfig
+from synapse.training.configs import LoRAConfig
 
 
 def check_peft_available() -> bool:
@@ -37,7 +37,7 @@ def get_dit_target_modules(model) -> List[str]:
     """Get the list of module names in the DiT decoder that can have LoRA applied.
     
     Args:
-        model: The AceStepConditionGenerationModel
+        model: The SynapseConditionGenerationModel
         
     Returns:
         List of module names suitable for LoRA
@@ -86,7 +86,7 @@ def inject_lora_into_dit(
     """Inject LoRA adapters into the DiT decoder of the model.
     
     Args:
-        model: The AceStepConditionGenerationModel
+        model: The SynapseConditionGenerationModel
         lora_config: LoRA configuration
         
     Returns:

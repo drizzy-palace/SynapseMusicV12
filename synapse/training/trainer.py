@@ -1,7 +1,7 @@
 """
-LoRA Trainer for ACE-Step
+LoRA Trainer for Synapse Music V12
 
-Lightning Fabric-based trainer for LoRA fine-tuning of ACE-Step DiT decoder.
+Lightning Fabric-based trainer for LoRA fine-tuning of Synapse Music V12 DiT decoder.
 Supports training from preprocessed tensor files for optimal performance.
 """
 
@@ -24,9 +24,9 @@ except ImportError:
     LIGHTNING_AVAILABLE = False
     logger.warning("Lightning Fabric not installed. Training will use basic training loop.")
 
-from acestep.training.configs import LoRAConfig, TrainingConfig
-from acestep.training.lora_utils import inject_lora_into_dit, save_lora_weights, check_peft_available
-from acestep.training.data_module import PreprocessedDataModule
+from synapse.training.configs import LoRAConfig, TrainingConfig
+from synapse.training.lora_utils import inject_lora_into_dit, save_lora_weights, check_peft_available
+from synapse.training.data_module import PreprocessedDataModule
 
 
 # Turbo model shift=3.0 discrete timesteps (8 steps, same as inference)
@@ -84,7 +84,7 @@ class PreprocessedLoRAModule(nn.Module):
         """Initialize the training module.
         
         Args:
-            model: The AceStepConditionGenerationModel
+            model: The SynapseConditionGenerationModel
             lora_config: LoRA configuration
             training_config: Training configuration
             device: Device to use
@@ -174,7 +174,7 @@ class PreprocessedLoRAModule(nn.Module):
 
 
 class LoRATrainer:
-    """High-level trainer for ACE-Step LoRA fine-tuning.
+    """High-level trainer for Synapse Music V12 LoRA fine-tuning.
     
     Uses Lightning Fabric for distributed training and mixed precision.
     Supports training from preprocessed tensor directories.

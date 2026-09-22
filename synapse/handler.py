@@ -34,19 +34,19 @@ import warnings
 from transformers import AutoTokenizer, AutoModel, AutoModelForCausalLM
 from transformers.generation.streamers import BaseStreamer
 from diffusers.models import AutoencoderOobleck
-from acestep.constants import (
+from synapse.constants import (
     TASK_INSTRUCTIONS,
     SFT_GEN_PROMPT,
     DEFAULT_DIT_INSTRUCTION,
 )
-from acestep.dit_alignment_score import MusicStampsAligner, MusicLyricScorer
+from synapse.dit_alignment_score import MusicStampsAligner, MusicLyricScorer
 
 
 warnings.filterwarnings("ignore")
 
 
-class AceStepHandler:
-    """ACE-Step Business Logic Handler"""
+class SynapseHandler:
+    """Synapse Music V12 Business Logic Handler"""
 
     # HuggingFace Space environment detection
     IS_HUGGINGFACE_SPACE = os.environ.get("SPACE_ID") is not None
@@ -99,7 +99,7 @@ class AceStepHandler:
         project_root = self._get_project_root()
         return os.path.join(project_root, "checkpoints")
 
-    def get_available_checkpoints(self) -> str:
+    def get_available_checkpoints(self) -> List[str]:
         """Return project root directory path"""
         checkpoint_dir = self._get_checkpoint_dir()
         if os.path.exists(checkpoint_dir):
@@ -107,15 +107,15 @@ class AceStepHandler:
         else:
             return []
 
-    def get_available_acestep_v15_models(self) -> List[str]:
-        """Scan and return all model directory names starting with 'acestep-v15-'"""
+    def get_available_synapse_v12_models(self) -> List[str]:
+        """Scan and return Synapse Music V12 model directories."""
         checkpoint_dir = self._get_checkpoint_dir()
 
         models = []
         if os.path.exists(checkpoint_dir):
             for item in os.listdir(checkpoint_dir):
                 item_path = os.path.join(checkpoint_dir, item)
-                if os.path.isdir(item_path) and item.startswith("acestep-v15-"):
+                if os.path.isdir(item_path) and item.startswith("synapse-v12-"):
                     models.append(item)
 
         models.sort()
@@ -124,25 +124,25 @@ class AceStepHandler:
     # Model name to HuggingFace repository mapping
     # Models in the same repo will be downloaded together
     MODEL_REPO_MAPPING = {
-        # Main unified repository (contains acestep-v15-turbo, LM models, VAE, text encoder)
-        "acestep-v15-turbo": "ACE-Step/Ace-Step1.5",
-        "acestep-5Hz-lm-0.6B": "ACE-Step/Ace-Step1.5",
-        "acestep-5Hz-lm-1.7B": "ACE-Step/Ace-Step1.5",
-        "vae": "ACE-Step/Ace-Step1.5",
-        "Qwen3-Embedding-0.6B": "ACE-Step/Ace-Step1.5",
+        # Main unified repository (contains synapse-v12-turbo, LM models, VAE, text encoder)
+        "synapse-v12-turbo": "SYNAPSEai1/SynapseMusicV12",
+        "synapse-composer-0.6B": "SYNAPSEai1/SynapseMusicV12",
+        "synapse-composer-1.7B": "SYNAPSEai1/SynapseMusicV12",
+        "vae": "SYNAPSEai1/SynapseMusicV12",
+        "Qwen3-Embedding-0.6B": "SYNAPSEai1/SynapseMusicV12",
         
         # Separate model repositories
-        "acestep-v15-base": "ACE-Step/acestep-v15-base",
-        "acestep-v15-sft": "ACE-Step/acestep-v15-sft",
-        "acestep-v15-turbo-shift3": "ACE-Step/acestep-v15-turbo-shift3",
+        "synapse-v12-base": "SYNAPSEai1/SynapseMusicV12-Base",
+        "synapse-v12-sft": "SYNAPSEai1/SynapseMusicV12-SFT",
+        "synapse-v12-turbo-shift3": "SYNAPSEai1/SynapseMusicV12-Turbo-Shift3",
         # XL (4B) DiT models
-        "acestep-v15-xl-turbo": "ACE-Step/acestep-v15-xl-turbo",
-        "acestep-v15-xl-base": "ACE-Step/acestep-v15-xl-base",
-        "acestep-v15-xl-sft": "ACE-Step/acestep-v15-xl-sft",
+        "synapse-v12-xl-turbo": "SYNAPSEai1/SynapseMusicV12-XL-Turbo",
+        "synapse-v12-xl-base": "SYNAPSEai1/SynapseMusicV12-XL-Base",
+        "synapse-v12-xl-sft": "SYNAPSEai1/SynapseMusicV12-XL-SFT",
     }
     
     # Default fallback repository for unknown models
-    DEFAULT_REPO_ID = "ACE-Step/Ace-Step1.5"
+    DEFAULT_REPO_ID = "SYNAPSEai1/SynapseMusicV12"
 
     def _ensure_model_downloaded(self, model_name: str, checkpoint_dir: str) -> str:
         """
@@ -153,11 +153,11 @@ class AceStepHandler:
         - Models in MODEL_REPO_MAPPING will be downloaded from their specific repo
         - Unknown models will try the DEFAULT_REPO_ID
         
-        For separate model repos (acestep-v15-base, acestep-v15-sft, acestep-v15-turbo-shift3),
+        For separate model repos (synapse-v12-base, synapse-v12-sft, synapse-v12-turbo-shift3),
         downloads directly into the model subdirectory.
 
         Args:
-            model_name: Model directory name (e.g., "acestep-v15-turbo", "acestep-v15-turbo-shift3")
+            model_name: Model directory name (e.g., "synapse-v12-turbo", "synapse-v12-turbo-shift3")
             checkpoint_dir: Target checkpoint directory
 
         Returns:
@@ -176,7 +176,7 @@ class AceStepHandler:
         repo_id = self.MODEL_REPO_MAPPING.get(model_name, self.DEFAULT_REPO_ID)
         
         # Determine if this is a unified repo or a separate model repo
-        is_unified_repo = repo_id == self.DEFAULT_REPO_ID or repo_id == "ACE-Step/Ace-Step1.5"
+        is_unified_repo = repo_id == self.DEFAULT_REPO_ID or repo_id == "SYNAPSEai1/SynapseMusicV12"
         
         if is_unified_repo:
             # Unified repo: download entire repo to checkpoint_dir
@@ -386,7 +386,7 @@ class AceStepHandler:
         
         Args:
             project_root: Project root path (may be checkpoints directory, will be handled automatically)
-            config_path: Model config directory name (e.g., "acestep-v15-turbo")
+            config_path: Model config directory name (e.g., "synapse-v12-turbo")
             device: Device type
             use_flash_attention: Whether to use flash attention (requires flash_attn package)
             compile_model: Whether to use torch.compile to optimize the model
@@ -433,27 +433,27 @@ class AceStepHandler:
             os.makedirs(checkpoint_dir, exist_ok=True)
 
             # 1. Load main model
-            # config_path is relative path (e.g., "acestep-v15-turbo"), concatenate to checkpoints directory
+            # config_path is relative path (e.g., "synapse-v12-turbo"), concatenate to checkpoints directory
             # If config_path is None (HuggingFace Space with empty checkpoint), use default and auto-download
             if config_path is None:
-                config_path = "acestep-v15-turbo"
+                config_path = "synapse-v12-turbo"
                 logger.info(f"[initialize_service] config_path is None, using default: {config_path}")
 
-            acestep_v15_checkpoint_path = os.path.join(checkpoint_dir, config_path)
+            synapse_v12_checkpoint_path = os.path.join(checkpoint_dir, config_path)
 
             # Auto-download model if not exists (HuggingFace Space support)
-            if not os.path.exists(acestep_v15_checkpoint_path):
-                acestep_v15_checkpoint_path = self._ensure_model_downloaded(config_path, checkpoint_dir)
+            if not os.path.exists(synapse_v12_checkpoint_path):
+                synapse_v12_checkpoint_path = self._ensure_model_downloaded(config_path, checkpoint_dir)
 
             # Ensure shared dependencies (VAE, text encoder) are available.
             # Independent model repos (e.g., XL variants) only contain DiT weights.
             # Download the unified repo first to get all shared components.
-            unified_model_path = os.path.join(checkpoint_dir, 'acestep-v15-turbo')
+            unified_model_path = os.path.join(checkpoint_dir, 'synapse-v12-turbo')
             if not os.path.exists(unified_model_path):
                 logger.info('[initialize_service] Downloading unified repo for shared components (VAE, text encoder)...')
-                self._ensure_model_downloaded('acestep-v15-turbo', checkpoint_dir)
+                self._ensure_model_downloaded('synapse-v12-turbo', checkpoint_dir)
 
-            if os.path.exists(acestep_v15_checkpoint_path):
+            if os.path.exists(synapse_v12_checkpoint_path):
                 # Determine attention implementation (prefer flash-attn3 > flash_attention_2 > sdpa)
                 if use_flash_attention:
                     attn_implementation = self.get_best_attn_implementation()
@@ -475,7 +475,7 @@ class AceStepHandler:
                         logger.info(f"[initialize_service] Attempting to load model with attention implementation: {attn_impl}")
 
                         self.model = AutoModel.from_pretrained(
-                            acestep_v15_checkpoint_path,
+                            synapse_v12_checkpoint_path,
                             trust_remote_code=True,
                             attn_implementation=attn_impl,
                             dtype="bfloat16"
@@ -529,7 +529,7 @@ class AceStepHandler:
                     self.silence_latent = shared_silence_latent
                     logger.info("[initialize_service] Using shared silence_latent")
                 else:
-                    silence_latent_path = os.path.join(acestep_v15_checkpoint_path, "silence_latent.pt")
+                    silence_latent_path = os.path.join(synapse_v12_checkpoint_path, "silence_latent.pt")
                     if os.path.exists(silence_latent_path):
                         self.silence_latent = torch.load(silence_latent_path).transpose(1, 2)
                         # Always keep silence_latent on GPU - it's used in many places outside model context
@@ -539,7 +539,7 @@ class AceStepHandler:
                     else:
                         raise FileNotFoundError(f"Silence latent not found at {silence_latent_path}")
             else:
-                raise FileNotFoundError(f"ACE-Step V1.5 checkpoint not found at {acestep_v15_checkpoint_path}")
+                raise FileNotFoundError(f"Synapse Music V12 checkpoint not found at {synapse_v12_checkpoint_path}")
             
             # 2. Load or use shared VAE
             vae_checkpoint_path = os.path.join(checkpoint_dir, "vae")  # Define for status message
@@ -608,7 +608,7 @@ class AceStepHandler:
             using_shared = shared_vae is not None or shared_text_encoder is not None
             
             status_msg = f"✅ Model initialized successfully on {device}\n"
-            status_msg += f"Main model: {acestep_v15_checkpoint_path}\n"
+            status_msg += f"Main model: {synapse_v12_checkpoint_path}\n"
             if shared_vae is None:
                 status_msg += f"VAE: {vae_checkpoint_path}\n"
             else:

@@ -1,4 +1,4 @@
-"""FastAPI server for ACE-Step V1.5.
+"""FastAPI server for Synapse Music V12.
 
 Endpoints:
 - POST /release_task     Create music generation task
@@ -40,28 +40,28 @@ from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 from starlette.datastructures import UploadFile as StarletteUploadFile
 
-from acestep.handler import AceStepHandler
-from acestep.llm_inference import LLMHandler
-from acestep.constants import (
+from synapse.handler import SynapseHandler
+from synapse.llm_inference import LLMHandler
+from synapse.constants import (
     DEFAULT_DIT_INSTRUCTION,
     DEFAULT_LM_INSTRUCTION,
     TASK_INSTRUCTIONS,
 )
-from acestep.inference import (
+from synapse.inference import (
     GenerationParams,
     GenerationConfig,
     generate_music,
     create_sample,
     format_sample,
 )
-from acestep.gradio_ui.events.results_handlers import _build_generation_info
+from synapse.gradio_ui.events.results_handlers import _build_generation_info
 
 
 # =============================================================================
 # Constants
 # =============================================================================
 
-RESULT_KEY_PREFIX = "ace_step_v1.5_"
+RESULT_KEY_PREFIX = "synapse_music_v12_"
 RESULT_EXPIRE_SECONDS = 7 * 24 * 60 * 60  # 7 days
 TASK_TIMEOUT_SECONDS = 3600  # 1 hour
 STATUS_MAP = {"queued": 0, "running": 0, "succeeded": 1, "failed": 2}
@@ -176,7 +176,7 @@ class GenerateMusicRequest(BaseModel):
     lyrics: str = Field(default="", description="Lyric text")
 
     # New API semantics:
-    # - thinking=True: use 5Hz LM to generate audio codes (lm-dit behavior)
+    # - thinking=True: use Synapse Composer to generate audio codes (lm-dit behavior)
     # - thinking=False: do not use LM to generate codes (dit behavior)
     # Regardless of thinking, if some metas are missing, server may use LM to fill them.
     thinking: bool = False
@@ -187,7 +187,7 @@ class GenerateMusicRequest(BaseModel):
     # Whether to use format_sample() to enhance input caption/lyrics
     use_format: bool = Field(default=False, description="Use format_sample() to enhance input (default: False)")
     # Model name for multi-model support (select which DiT model to use)
-    model: Optional[str] = Field(default=None, description="Model name to use (e.g., 'acestep-v15-turbo')")
+    model: Optional[str] = Field(default=None, description="Model name to use (e.g., 'synapse-v12-turbo')")
 
     bpm: Optional[int] = None
     # Accept common client keys via manual parsing (see RequestParser).
@@ -229,8 +229,8 @@ class GenerateMusicRequest(BaseModel):
     audio_format: str = "mp3"
     use_tiled_decode: bool = True
 
-    # 5Hz LM (server-side): used for metadata completion and (when thinking=True) codes generation.
-    lm_model_path: Optional[str] = None  # e.g. "acestep-5Hz-lm-0.6B"
+    # Synapse Composer (server-side): used for metadata completion and (when thinking=True) codes generation.
+    lm_model_path: Optional[str] = None  # e.g. "synapse-composer-0.6B"
     lm_backend: Literal["vllm", "pt"] = "vllm"
 
     constrained_decoding: bool = True
@@ -374,7 +374,7 @@ def _get_model_name(config_path: str) -> str:
     Extract model name from config_path.
     
     Args:
-        config_path: Path like "acestep-v15-turbo" or "/path/to/acestep-v15-turbo"
+        config_path: Path like "synapse-v12-turbo" or "/path/to/synapse-v12-turbo"
         
     Returns:
         Model name (last directory name from config_path)
@@ -532,11 +532,11 @@ async def _save_upload_to_temp(upload: StarletteUploadFile, *, prefix: str) -> s
 def create_app() -> FastAPI:
     store = _JobStore()
 
-    QUEUE_MAXSIZE = int(os.getenv("ACESTEP_QUEUE_MAXSIZE", "200"))
-    WORKER_COUNT = int(os.getenv("ACESTEP_QUEUE_WORKERS", "1"))  # Single GPU recommended
+    QUEUE_MAXSIZE = int(os.getenv("SYNAPSE_QUEUE_MAXSIZE", "200"))
+    WORKER_COUNT = int(os.getenv("SYNAPSE_QUEUE_WORKERS", "1"))  # Single GPU recommended
 
-    INITIAL_AVG_JOB_SECONDS = float(os.getenv("ACESTEP_AVG_JOB_SECONDS", "5.0"))
-    AVG_WINDOW = int(os.getenv("ACESTEP_AVG_WINDOW", "50"))
+    INITIAL_AVG_JOB_SECONDS = float(os.getenv("SYNAPSE_AVG_JOB_SECONDS", "5.0"))
+    AVG_WINDOW = int(os.getenv("SYNAPSE_AVG_WINDOW", "50"))
 
     def _path_to_audio_url(path: str) -> str:
         """Convert local file path to downloadable relative URL"""
@@ -556,8 +556,8 @@ def create_app() -> FastAPI:
         # Ensure compilation/temp caches do not fill up small default /tmp.
         # Triton/Inductor (and the system compiler) can create large temporary files.
         project_root = _get_project_root()
-        cache_root = os.path.join(project_root, ".cache", "acestep")
-        tmp_root = (os.getenv("ACESTEP_TMPDIR") or os.path.join(cache_root, "tmp")).strip()
+        cache_root = os.path.join(project_root, ".cache", "synapse")
+        tmp_root = (os.getenv("SYNAPSE_TMPDIR") or os.path.join(cache_root, "tmp")).strip()
         triton_cache_root = (os.getenv("TRITON_CACHE_DIR") or os.path.join(cache_root, "triton")).strip()
         inductor_cache_root = (os.getenv("TORCHINDUCTOR_CACHE_DIR") or os.path.join(cache_root, "torchinductor")).strip()
 
@@ -568,8 +568,8 @@ def create_app() -> FastAPI:
                 # Best-effort: do not block startup if directory creation fails.
                 pass
 
-        # Respect explicit user overrides; if ACESTEP_TMPDIR is set, it should win.
-        if os.getenv("ACESTEP_TMPDIR"):
+        # Respect explicit user overrides; if SYNAPSE_TMPDIR is set, it should win.
+        if os.getenv("SYNAPSE_TMPDIR"):
             os.environ["TMPDIR"] = tmp_root
             os.environ["TEMP"] = tmp_root
             os.environ["TMP"] = tmp_root
@@ -581,7 +581,7 @@ def create_app() -> FastAPI:
         os.environ.setdefault("TRITON_CACHE_DIR", triton_cache_root)
         os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", inductor_cache_root)
 
-        handler = AceStepHandler()
+        handler = SynapseHandler()
         llm_handler = LLMHandler()
         init_lock = asyncio.Lock()
         app.state._initialized = False
@@ -596,23 +596,23 @@ def create_app() -> FastAPI:
         # Multi-model support: secondary DiT handlers
         handler2 = None
         handler3 = None
-        config_path2 = os.getenv("ACESTEP_CONFIG_PATH2", "").strip()
-        config_path3 = os.getenv("ACESTEP_CONFIG_PATH3", "").strip()
+        config_path2 = os.getenv("SYNAPSE_CONFIG_PATH2", "").strip()
+        config_path3 = os.getenv("SYNAPSE_CONFIG_PATH3", "").strip()
         
         if config_path2:
-            handler2 = AceStepHandler()
+            handler2 = SynapseHandler()
         if config_path3:
-            handler3 = AceStepHandler()
+            handler3 = SynapseHandler()
         
         app.state.handler2 = handler2
         app.state.handler3 = handler3
         app.state._initialized2 = False
         app.state._initialized3 = False
-        app.state._config_path = os.getenv("ACESTEP_CONFIG_PATH", "acestep-v15-turbo")
+        app.state._config_path = os.getenv("SYNAPSE_CONFIG_PATH", "synapse-v12-turbo")
         app.state._config_path2 = config_path2
         app.state._config_path3 = config_path3
 
-        max_workers = int(os.getenv("ACESTEP_API_WORKERS", "1"))
+        max_workers = int(os.getenv("SYNAPSE_API_WORKERS", "1"))
         executor = ThreadPoolExecutor(max_workers=max_workers)
 
         # Queue & observability
@@ -640,14 +640,14 @@ def create_app() -> FastAPI:
 
         # Initialize local cache
         try:
-            from acestep.local_cache import get_local_cache
+            from synapse.local_cache import get_local_cache
             local_cache_dir = os.path.join(cache_root, "local_redis")
             app.state.local_cache = get_local_cache(local_cache_dir)
         except ImportError:
             app.state.local_cache = None
 
         async def _ensure_initialized() -> None:
-            h: AceStepHandler = app.state.handler
+            h: SynapseHandler = app.state.handler
 
             if getattr(app.state, "_initialized", False):
                 return
@@ -661,12 +661,12 @@ def create_app() -> FastAPI:
                     raise RuntimeError(app.state._init_error)
 
                 project_root = _get_project_root()
-                config_path = os.getenv("ACESTEP_CONFIG_PATH", "acestep-v15-turbo")
-                device = os.getenv("ACESTEP_DEVICE", "auto")
+                config_path = os.getenv("SYNAPSE_CONFIG_PATH", "synapse-v12-turbo")
+                device = os.getenv("SYNAPSE_DEVICE", "auto")
 
-                use_flash_attention = _env_bool("ACESTEP_USE_FLASH_ATTENTION", True)
-                offload_to_cpu = _env_bool("ACESTEP_OFFLOAD_TO_CPU", False)
-                offload_dit_to_cpu = _env_bool("ACESTEP_OFFLOAD_DIT_TO_CPU", False)
+                use_flash_attention = _env_bool("SYNAPSE_USE_FLASH_ATTENTION", True)
+                offload_to_cpu = _env_bool("SYNAPSE_OFFLOAD_TO_CPU", False)
+                offload_dit_to_cpu = _env_bool("SYNAPSE_OFFLOAD_DIT_TO_CPU", False)
 
                 # Initialize primary model
                 status_msg, ok = h.initialize_service(
@@ -820,7 +820,7 @@ def create_app() -> FastAPI:
             
             # Select DiT handler based on user's model choice
             # Default: use primary handler
-            selected_handler: AceStepHandler = app.state.handler
+            selected_handler: SynapseHandler = app.state.handler
             selected_model_name = _get_model_name(app.state._config_path)
             
             if req.model:
@@ -853,10 +853,10 @@ def create_app() -> FastAPI:
                     print(f"[API Server] Job {job_id}: Model '{req.model}' not found in {available_models}, using primary: {selected_model_name}")
             
             # Use selected handler for generation
-            h: AceStepHandler = selected_handler
+            h: SynapseHandler = selected_handler
 
             def _blocking_generate() -> Dict[str, Any]:
-                """Generate music using unified inference logic from acestep.inference"""
+                """Generate music using unified inference logic from synapse.inference"""
                 
                 def _ensure_llm_ready() -> None:
                     """Ensure LLM handler is initialized when needed"""
@@ -868,13 +868,13 @@ def create_app() -> FastAPI:
 
                         project_root = _get_project_root()
                         checkpoint_dir = os.path.join(project_root, "checkpoints")
-                        lm_model_path = (req.lm_model_path or os.getenv("ACESTEP_LM_MODEL_PATH") or "acestep-5Hz-lm-0.6B").strip()
-                        backend = (req.lm_backend or os.getenv("ACESTEP_LM_BACKEND") or "vllm").strip().lower()
+                        lm_model_path = (req.lm_model_path or os.getenv("SYNAPSE_LM_MODEL_PATH") or "synapse-composer-0.6B").strip()
+                        backend = (req.lm_backend or os.getenv("SYNAPSE_LM_BACKEND") or "vllm").strip().lower()
                         if backend not in {"vllm", "pt"}:
                             backend = "vllm"
 
-                        lm_device = os.getenv("ACESTEP_LM_DEVICE", os.getenv("ACESTEP_DEVICE", "auto"))
-                        lm_offload = _env_bool("ACESTEP_LM_OFFLOAD_TO_CPU", False)
+                        lm_device = os.getenv("SYNAPSE_LM_DEVICE", os.getenv("SYNAPSE_DEVICE", "auto"))
+                        lm_offload = _env_bool("SYNAPSE_LM_OFFLOAD_TO_CPU", False)
 
                         status, ok = llm.initialize(
                             checkpoint_dir=checkpoint_dir,
@@ -930,7 +930,7 @@ def create_app() -> FastAPI:
                 if need_llm:
                     _ensure_llm_ready()
                     if getattr(app.state, "_llm_init_error", None):
-                        raise RuntimeError(f"5Hz LM init failed: {app.state._llm_init_error}")
+                        raise RuntimeError(f"Synapse Composer init failed: {app.state._llm_init_error}")
 
                 # Handle sample mode or description: generate caption/lyrics/metas via LM
                 caption = req.prompt
@@ -997,10 +997,10 @@ def create_app() -> FastAPI:
                         # Use generated values with fallback defaults
                         caption = sample_metadata.get("caption", "")
                         lyrics = sample_metadata.get("lyrics", "")
-                        bpm = _to_int(sample_metadata.get("bpm"), None) or _to_int(os.getenv("ACESTEP_SAMPLE_DEFAULT_BPM", "120"), 120)
-                        key_scale = sample_metadata.get("keyscale", "") or os.getenv("ACESTEP_SAMPLE_DEFAULT_KEY", "C Major")
-                        time_signature = sample_metadata.get("timesignature", "") or os.getenv("ACESTEP_SAMPLE_DEFAULT_TIMESIGNATURE", "4/4")
-                        audio_duration = _to_float(sample_metadata.get("duration"), None) or _to_float(os.getenv("ACESTEP_SAMPLE_DEFAULT_DURATION_SECONDS", "120"), 120.0)
+                        bpm = _to_int(sample_metadata.get("bpm"), None) or _to_int(os.getenv("SYNAPSE_SAMPLE_DEFAULT_BPM", "120"), 120)
+                        key_scale = sample_metadata.get("keyscale", "") or os.getenv("SYNAPSE_SAMPLE_DEFAULT_KEY", "C Major")
+                        time_signature = sample_metadata.get("timesignature", "") or os.getenv("SYNAPSE_SAMPLE_DEFAULT_TIMESIGNATURE", "4/4")
+                        audio_duration = _to_float(sample_metadata.get("duration"), None) or _to_float(os.getenv("SYNAPSE_SAMPLE_DEFAULT_DURATION_SECONDS", "120"), 120.0)
 
                 # Apply format_sample() if use_format is True and caption/lyrics are provided
                 format_has_duration = False
@@ -1008,7 +1008,7 @@ def create_app() -> FastAPI:
                 if req.use_format and (caption or lyrics):
                     _ensure_llm_ready()
                     if getattr(app.state, "_llm_init_error", None):
-                        raise RuntimeError(f"5Hz LM init failed (needed for format): {app.state._llm_init_error}")
+                        raise RuntimeError(f"Synapse Composer init failed (needed for format): {app.state._llm_init_error}")
                     
                     # Build user_metadata from request params (matching bot.py behavior)
                     user_metadata_for_format = {}
@@ -1195,7 +1195,7 @@ def create_app() -> FastAPI:
                     return s
 
                 # Get model information
-                lm_model_name = os.getenv("ACESTEP_LM_MODEL_PATH", "acestep-5Hz-lm-0.6B")
+                lm_model_name = os.getenv("SYNAPSE_LM_MODEL_PATH", "synapse-composer-0.6B")
                 # Use selected_model_name (set at the beginning of _run_one_job)
                 dit_model_name = selected_model_name
                 
@@ -1266,7 +1266,7 @@ def create_app() -> FastAPI:
                 t.cancel()
             executor.shutdown(wait=False, cancel_futures=True)
 
-    app = FastAPI(title="ACE-Step API", version="1.0", lifespan=lifespan)
+    app = FastAPI(title="Synapse Music V12 API", version="1.0", lifespan=lifespan)
 
     async def _queue_position(job_id: str) -> int:
         async with app.state.pending_lock:
@@ -1603,7 +1603,7 @@ def create_app() -> FastAPI:
         """Health check endpoint for service status."""
         return {
             "status": "ok",
-            "service": "ACE-Step API",
+            "service": "Synapse Music V12 API",
             "version": "1.0",
         }
 
@@ -1673,23 +1673,23 @@ def main() -> None:
     import argparse
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="ACE-Step API server")
+    parser = argparse.ArgumentParser(description="Synapse Music V12 API server")
     parser.add_argument(
         "--host",
-        default=os.getenv("ACESTEP_API_HOST", "127.0.0.1"),
-        help="Bind host (default from ACESTEP_API_HOST or 127.0.0.1)",
+        default=os.getenv("SYNAPSE_API_HOST", "127.0.0.1"),
+        help="Bind host (default from SYNAPSE_API_HOST or 127.0.0.1)",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=int(os.getenv("ACESTEP_API_PORT", "8001")),
-        help="Bind port (default from ACESTEP_API_PORT or 8001)",
+        default=int(os.getenv("SYNAPSE_API_PORT", "8001")),
+        help="Bind port (default from SYNAPSE_API_PORT or 8001)",
     )
     args = parser.parse_args()
 
     # IMPORTANT: in-memory queue/store -> workers MUST be 1
     uvicorn.run(
-        "acestep.api_server:app",
+        "synapse.api_server:app",
         host=str(args.host),
         port=int(args.port),
         reload=False,

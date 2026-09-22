@@ -1,10 +1,10 @@
-# ACE-Step 推理 API 文档
+# Synapse Music V12 推理 API 文档
 
 **Language / 语言 / 言語:** [English](../en/INFERENCE.md) | [中文](INFERENCE.md) | [日本語](../ja/INFERENCE.md)
 
 ---
 
-本文档提供 ACE-Step 推理 API 的综合文档，包括所有支持任务类型的参数规范。
+本文档提供 Synapse Music V12 推理 API 的综合文档，包括所有支持任务类型的参数规范。
 
 ## 目录
 
@@ -24,24 +24,24 @@
 ### 基本用法
 
 ```python
-from acestep.handler import AceStepHandler
-from acestep.llm_inference import LLMHandler
-from acestep.inference import GenerationParams, GenerationConfig, generate_music
+from synapse.handler import SynapseHandler
+from synapse.llm_inference import LLMHandler
+from synapse.inference import GenerationParams, GenerationConfig, generate_music
 
 # 初始化处理器
-dit_handler = AceStepHandler()
+dit_handler = SynapseHandler()
 llm_handler = LLMHandler()
 
 # 初始化服务
 dit_handler.initialize_service(
     project_root="/path/to/project",
-    config_path="acestep-v15-turbo",
+    config_path="synapse-v12-turbo",
     device="cuda"
 )
 
 llm_handler.initialize(
     checkpoint_dir="/path/to/checkpoints",
-    lm_model_path="acestep-5Hz-lm-0.6B",
+    lm_model_path="synapse-composer-0.6B",
     backend="vllm",
     device="cuda"
 )
@@ -91,7 +91,7 @@ def generate_music(
 ) -> GenerationResult
 ```
 
-使用 ACE-Step 模型生成音乐的主函数。
+使用 Synapse Music V12 模型生成音乐的主函数。
 
 #### understand_music
 
@@ -428,7 +428,7 @@ class FormatSampleResult:
 
 ## 任务类型
 
-ACE-Step 支持 6 种不同的生成任务类型，每种都针对特定用例进行了优化。
+Synapse Music V12 支持 6 种不同的生成任务类型，每种都针对特定用例进行了优化。
 
 ### 1. Text2Music（默认）
 
@@ -615,7 +615,7 @@ params = GenerationParams(
 分析音频代码以提取音乐元数据。
 
 ```python
-from acestep.inference import understand_music
+from synapse.inference import understand_music
 
 result = understand_music(
     llm_handler=llm_handler,
@@ -647,7 +647,7 @@ else:
 从自然语言描述生成完整的音乐样本。这是"简单模式"/"灵感模式"功能。
 
 ```python
-from acestep.inference import create_sample
+from synapse.inference import create_sample
 
 result = create_sample(
     llm_handler=llm_handler,
@@ -698,7 +698,7 @@ else:
 格式化和增强用户提供的 caption 和 lyrics，生成结构化元数据。
 
 ```python
-from acestep.inference import format_sample
+from synapse.inference import format_sample
 
 result = format_sample(
     llm_handler=llm_handler,
@@ -739,7 +739,7 @@ else:
 ### 示例 1：简单文本到音乐生成
 
 ```python
-from acestep.inference import GenerationParams, GenerationConfig, generate_music
+from synapse.inference import GenerationParams, GenerationConfig, generate_music
 
 params = GenerationParams(
     task_type="text2music",
@@ -822,7 +822,7 @@ result = generate_music(dit_handler, llm_handler, params, config, save_dir="/out
 ### 示例 5：使用 create_sample 的简单模式
 
 ```python
-from acestep.inference import create_sample, GenerationParams, GenerationConfig, generate_music
+from synapse.inference import create_sample, GenerationParams, GenerationConfig, generate_music
 
 # 步骤 1：从描述创建样本
 sample = create_sample(
@@ -850,7 +850,7 @@ if sample.success:
 ### 示例 6：格式化和增强用户输入
 
 ```python
-from acestep.inference import format_sample, GenerationParams, GenerationConfig, generate_music
+from synapse.inference import format_sample, GenerationParams, GenerationConfig, generate_music
 
 # 步骤 1：格式化用户输入
 formatted = format_sample(
@@ -1046,4 +1046,4 @@ else:
 - 主 README：[`../../README.md`](../../README.md)
 - REST API 文档：[`API.md`](API.md)
 - Gradio 演示指南：[`GRADIO_GUIDE.md`](GRADIO_GUIDE.md)
-- 项目仓库：[ACE-Step-1.5](https://github.com/yourusername/ACE-Step-1.5)
+- 项目仓库：[Synapse Music V12-1.5](https://github.com/yourusername/Synapse Music V12-1.5)

@@ -6,7 +6,7 @@ from transformers import AutoTokenizer
 from transformers.generation.logits_process import LogitsProcessor
 import os
 import torch
-from acestep.constants import (
+from synapse.constants import (
     VALID_LANGUAGES,
     KEYSCALE_NOTES,
     KEYSCALE_ACCIDENTALS,

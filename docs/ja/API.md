@@ -1,4 +1,4 @@
-# ACE-Step API クライアントドキュメント
+# Synapse Music V12 API クライアントドキュメント
 
 **Language / 语言 / 言語:** [English](../en/API.md) | [中文](../zh/API.md) | [日本語](API.md)
 
@@ -68,7 +68,7 @@ APIはほとんどのパラメータで **snake_case** と **camelCase** の両�
 | :--- | :--- | :--- | :--- |
 | `caption` | string | `""` | 音楽の説明プロンプト |
 | `lyrics` | string | `""` | 歌詞の内容 |
-| `thinking` | bool | `false` | 5Hz LMを使用してオーディオコードを生成するかどうか（lm-dit動作）|
+| `thinking` | bool | `false` | Synapse Composerを使用してオーディオコードを生成するかどうか（lm-dit動作）|
 | `vocal_language` | string | `"en"` | 歌詞の言語（en、zh、jaなど）|
 | `audio_format` | string | `"mp3"` | 出力形式（mp3、wav、flac）|
 
@@ -84,20 +84,20 @@ APIはほとんどのパラメータで **snake_case** と **camelCase** の両�
 
 | パラメータ名 | 型 | デフォルト | 説明 |
 | :--- | :--- | :--- | :--- |
-| `model` | string | null | 使用するDiTモデルを選択（例：`"acestep-v15-turbo"`、`"acestep-v15-turbo-shift3"`）。`/v1/models` で利用可能なモデルを一覧表示。指定しない場合はデフォルトモデルを使用。|
+| `model` | string | null | 使用するDiTモデルを選択（例：`"synapse-v12-turbo"`、`"synapse-v12-turbo-shift3"`）。`/v1/models` で利用可能なモデルを一覧表示。指定しない場合はデフォルトモデルを使用。|
 
 **thinkingのセマンティクス（重要）**：
 
 - `thinking=false`：
-  - サーバーは5Hz LMを使用して `audio_code_string` を生成**しません**。
+  - サーバーはSynapse Composerを使用して `audio_code_string` を生成**しません**。
   - DiTは **text2music** モードで実行され、提供された `audio_code_string` を**無視**します。
 - `thinking=true`：
-  - サーバーは5Hz LMを使用して `audio_code_string` を生成します（lm-dit動作）。
+  - サーバーはSynapse Composerを使用して `audio_code_string` を生成します（lm-dit動作）。
   - DiTはLM生成のコードで実行され、音楽品質が向上します。
 
 **メタデータの自動補完（条件付き）**：
 
-`use_cot_caption=true` または `use_cot_language=true` またはメタデータフィールドが欠落している場合、サーバーは `caption`/`lyrics` に基づいて5Hz LMを呼び出し、欠落しているフィールドを補完することがあります：
+`use_cot_caption=true` または `use_cot_language=true` またはメタデータフィールドが欠落している場合、サーバーは `caption`/`lyrics` に基づいてSynapse Composerを呼び出し、欠落しているフィールドを補完することがあります：
 
 - `bpm`
 - `key_scale`
@@ -142,13 +142,13 @@ APIはほとんどのパラメータで **snake_case** と **camelCase** の両�
 | `cfg_interval_start` | float | `0.0` | CFG適用開始比率（0.0-1.0）|
 | `cfg_interval_end` | float | `1.0` | CFG適用終了比率（0.0-1.0）|
 
-**5Hz LMパラメータ（オプション、サーバー側）**：
+**Synapse Composerパラメータ（オプション、サーバー側）**：
 
-これらのパラメータは5Hz LMサンプリングを制御し、メタデータの自動補完と（`thinking=true` の場合）コード生成に使用されます。
+これらのパラメータはSynapse Composerサンプリングを制御し、メタデータの自動補完と（`thinking=true` の場合）コード生成に使用されます。
 
 | パラメータ名 | 型 | デフォルト | 説明 |
 | :--- | :--- | :--- | :--- |
-| `lm_model_path` | string | null | 5Hz LMチェックポイントディレクトリ名（例：`acestep-5Hz-lm-0.6B`）|
+| `lm_model_path` | string | null | Synapse Composerチェックポイントディレクトリ名（例：`synapse-composer-0.6B`）|
 | `lm_backend` | string | `"vllm"` | `vllm` または `pt` |
 | `lm_temperature` | float | `0.85` | サンプリング温度 |
 | `lm_cfg_scale` | float | `2.5` | CFGスケール（>1でCFGを有効化）|
@@ -258,7 +258,7 @@ curl -X POST http://localhost:8001/v1/music/generate \
   -H 'Content-Type: application/json' \
   -d '{
     "caption": "エレクトロニックダンスミュージック",
-    "model": "acestep-v15-turbo",
+    "model": "synapse-v12-turbo",
     "thinking": true
   }'
 ```
@@ -382,8 +382,8 @@ curl -X POST http://localhost:8001/v1/music/generate \
     "keyscale": "C Major",
     "timesignature": "4",
     "genres": null,
-    "lm_model": "acestep-5Hz-lm-0.6B",
-    "dit_model": "acestep-v15-turbo"
+    "lm_model": "synapse-composer-0.6B",
+    "dit_model": "synapse-v12-turbo"
   },
   "error": null
 }
@@ -398,7 +398,7 @@ curl -X POST http://localhost:8001/v1/music/generate \
 - **URL**：`/v1/music/random`
 - **メソッド**：`POST`
 
-このエンドポイントは5Hz LM経由でcaption、lyrics、メタデータを自動生成するサンプルモードジョブを作成します。
+このエンドポイントはSynapse Composer経由でcaption、lyrics、メタデータを自動生成するサンプルモードジョブを作成します。
 
 ### 4.2 リクエストパラメータ
 
@@ -441,15 +441,15 @@ curl -X POST http://localhost:8001/v1/music/random \
 {
   "models": [
     {
-      "name": "acestep-v15-turbo",
+      "name": "synapse-v12-turbo",
       "is_default": true
     },
     {
-      "name": "acestep-v15-turbo-shift3",
+      "name": "synapse-v12-turbo-shift3",
       "is_default": false
     }
   ],
-  "default_model": "acestep-v15-turbo"
+  "default_model": "synapse-v12-turbo"
 }
 ```
 
@@ -499,7 +499,7 @@ curl "http://localhost:8001/v1/audio?path=%2Ftmp%2Fapi_audio%2Fabc123.mp3" -o ou
 ```json
 {
   "status": "ok",
-  "service": "ACE-Step API",
+  "service": "Synapse Music V12 API",
   "version": "1.0"
 }
 ```
@@ -512,23 +512,23 @@ APIサーバーは環境変数で設定できます：
 
 | 変数 | デフォルト | 説明 |
 | :--- | :--- | :--- |
-| `ACESTEP_API_HOST` | `127.0.0.1` | サーバーバインドホスト |
-| `ACESTEP_API_PORT` | `8001` | サーバーバインドポート |
-| `ACESTEP_CONFIG_PATH` | `acestep-v15-turbo` | プライマリDiTモデルパス |
-| `ACESTEP_CONFIG_PATH2` | （空）| セカンダリDiTモデルパス（オプション）|
-| `ACESTEP_CONFIG_PATH3` | （空）| 3番目のDiTモデルパス（オプション）|
-| `ACESTEP_DEVICE` | `auto` | モデルロードデバイス |
-| `ACESTEP_USE_FLASH_ATTENTION` | `true` | flash attentionを有効化 |
-| `ACESTEP_OFFLOAD_TO_CPU` | `false` | アイドル時にモデルをCPUにオフロード |
-| `ACESTEP_OFFLOAD_DIT_TO_CPU` | `false` | DiTを特にCPUにオフロード |
-| `ACESTEP_LM_MODEL_PATH` | `acestep-5Hz-lm-0.6B` | デフォルト5Hz LMモデル |
-| `ACESTEP_LM_BACKEND` | `vllm` | LMバックエンド（vllmまたはpt）|
-| `ACESTEP_LM_DEVICE` | （ACESTEP_DEVICEと同じ）| LMデバイス |
-| `ACESTEP_LM_OFFLOAD_TO_CPU` | `false` | LMをCPUにオフロード |
-| `ACESTEP_QUEUE_MAXSIZE` | `200` | 最大キューサイズ |
-| `ACESTEP_QUEUE_WORKERS` | `1` | キューワーカー数 |
-| `ACESTEP_AVG_JOB_SECONDS` | `5.0` | 初期平均ジョブ時間推定 |
-| `ACESTEP_TMPDIR` | `.cache/acestep/tmp` | 一時ファイルディレクトリ |
+| `SYNAPSE_API_HOST` | `127.0.0.1` | サーバーバインドホスト |
+| `SYNAPSE_API_PORT` | `8001` | サーバーバインドポート |
+| `SYNAPSE_CONFIG_PATH` | `synapse-v12-turbo` | プライマリDiTモデルパス |
+| `SYNAPSE_CONFIG_PATH2` | （空）| セカンダリDiTモデルパス（オプション）|
+| `SYNAPSE_CONFIG_PATH3` | （空）| 3番目のDiTモデルパス（オプション）|
+| `SYNAPSE_DEVICE` | `auto` | モデルロードデバイス |
+| `SYNAPSE_USE_FLASH_ATTENTION` | `true` | flash attentionを有効化 |
+| `SYNAPSE_OFFLOAD_TO_CPU` | `false` | アイドル時にモデルをCPUにオフロード |
+| `SYNAPSE_OFFLOAD_DIT_TO_CPU` | `false` | DiTを特にCPUにオフロード |
+| `SYNAPSE_LM_MODEL_PATH` | `synapse-composer-0.6B` | デフォルトSynapse Composerモデル |
+| `SYNAPSE_LM_BACKEND` | `vllm` | LMバックエンド（vllmまたはpt）|
+| `SYNAPSE_LM_DEVICE` | （SYNAPSE_DEVICEと同じ）| LMデバイス |
+| `SYNAPSE_LM_OFFLOAD_TO_CPU` | `false` | LMをCPUにオフロード |
+| `SYNAPSE_QUEUE_MAXSIZE` | `200` | 最大キューサイズ |
+| `SYNAPSE_QUEUE_WORKERS` | `1` | キューワーカー数 |
+| `SYNAPSE_AVG_JOB_SECONDS` | `5.0` | 初期平均ジョブ時間推定 |
+| `SYNAPSE_TMPDIR` | `.cache/synapse/tmp` | 一時ファイルディレクトリ |
 
 ---
 
@@ -565,6 +565,6 @@ APIサーバーは環境変数で設定できます：
 
 5. **`avg_job_seconds` を確認** してレスポンスで待ち時間を推定。
 
-6. **マルチモデルサポートを使用** するには `ACESTEP_CONFIG_PATH2` と `ACESTEP_CONFIG_PATH3` 環境変数を設定し、`model` パラメータで選択。
+6. **マルチモデルサポートを使用** するには `SYNAPSE_CONFIG_PATH2` と `SYNAPSE_CONFIG_PATH3` 環境変数を設定し、`model` パラメータで選択。
 
 7. **本番環境** では常に適切なContent-Typeヘッダーを設定して415エラーを回避。

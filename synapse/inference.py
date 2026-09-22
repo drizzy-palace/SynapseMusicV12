@@ -1,5 +1,5 @@
 """
-ACE-Step Inference API Module
+Synapse Music V12 Inference API Module
 
 This module provides a standardized inference interface for music generation,
 designed for third-party integration. It offers both a simplified API and
@@ -13,7 +13,7 @@ from typing import Optional, Union, List, Dict, Any, Tuple
 from dataclasses import dataclass, field, asdict
 from loguru import logger
 
-from acestep.audio_utils import AudioSaver, generate_uuid_from_params
+from synapse.audio_utils import AudioSaver, generate_uuid_from_params
 
 # HuggingFace Space environment detection
 IS_HUGGINGFACE_SPACE = os.environ.get("SPACE_ID") is not None
@@ -33,7 +33,7 @@ class GenerationParams:
         bpm: BPM (beats per minute), e.g., 120. Set to None for automatic estimation. 30 ~ 300
         keyscale: Musical key (e.g., "C Major", "Am"). Leave empty for auto-detection. A-G, #/♭, major/minor
         timesignature: Time signature (2 for '2/4', 3 for '3/4', 4 for '4/4', 6 for '6/8'). Leave empty for auto-detection.
-        vocal_language: Language code for vocals, e.g., "en", "zh", "ja", or "unknown". see acestep/constants.py:VALID_LANGUAGES
+        vocal_language: Language code for vocals, e.g., "en", "zh", "ja", or "unknown". see synapse/constants.py:VALID_LANGUAGES
         duration: Target audio length in seconds. If <0 or None, model chooses automatically. 10 ~ 600
         
         # Generation Parameters
@@ -283,10 +283,10 @@ def generate_music(
     save_dir: Optional[str] = None,
     progress=None,
 ) -> GenerationResult:
-    """Generate music using ACE-Step model with optional LM reasoning.
+    """Generate music using Synapse Music V12 model with optional LM reasoning.
     
     Args:
-        dit_handler: Initialized DiT model handler (AceStepHandler instance)
+        dit_handler: Initialized DiT model handler (SynapseHandler instance)
         llm_handler: Initialized LLM handler (LLMHandler instance)
         params: Generation parameters (GenerationParams instance)
         config: Generation configuration (GenerationConfig instance)
@@ -735,7 +735,7 @@ def understand_music(
     # Check if LLM is initialized
     if not llm_handler.llm_initialized:
         return UnderstandResult(
-            status_message="5Hz LM not initialized. Please initialize it first.",
+            status_message="Synapse Composer not initialized. Please initialize it first.",
             success=False,
             error="LLM not initialized",
         )
@@ -925,7 +925,7 @@ def create_sample(
     # Check if LLM is initialized
     if not llm_handler.llm_initialized:
         return CreateSampleResult(
-            status_message="5Hz LM not initialized. Please initialize it first.",
+            status_message="Synapse Composer not initialized. Please initialize it first.",
             success=False,
             error="LLM not initialized",
         )
@@ -1099,7 +1099,7 @@ def format_sample(
     # Check if LLM is initialized
     if not llm_handler.llm_initialized:
         return FormatSampleResult(
-            status_message="5Hz LM not initialized. Please initialize it first.",
+            status_message="Synapse Composer not initialized. Please initialize it first.",
             success=False,
             error="LLM not initialized",
         )

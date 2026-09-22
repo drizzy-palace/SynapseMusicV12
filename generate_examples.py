@@ -12,7 +12,7 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from acestep.llm_inference import LLMHandler
+from synapse.llm_inference import LLMHandler
 from loguru import logger
 from tqdm import tqdm
 
@@ -36,11 +36,11 @@ def generate_examples(num_examples=50, output_dir="examples/text2music", start_i
     # Use default LM model
     available_models = llm_handler.get_available_5hz_lm_models()
     if not available_models:
-        logger.error("No 5Hz LM models found in checkpoints directory")
+        logger.error("No Synapse Composer models found in checkpoints directory")
         return
     
-    # Prefer acestep-5Hz-lm-0.6B if available
-    lm_model = "acestep-5Hz-lm-0.6B" if "acestep-5Hz-lm-0.6B" in available_models else available_models[0]
+    # Prefer synapse-composer-0.6B if available
+    lm_model = "synapse-composer-0.6B" if "synapse-composer-0.6B" in available_models else available_models[0]
     logger.info(f"Using LM model: {lm_model}")
     
     # Initialize LM

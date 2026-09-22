@@ -1,5 +1,5 @@
 """
-Constants for ACE-Step
+Constants for Synapse Music V12
 Centralized constants used across the codebase
 """
 
